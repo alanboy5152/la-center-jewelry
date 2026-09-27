@@ -20,6 +20,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { HeroConfig } from '../../types';
 import { saveMediaBlob, removeMediaBlob } from '../../services/mediaStorage';
+import { uploadHeroVideoToCloud, removeHeroVideoFromCloud } from '../../services/cloudVideoStorage';
 
 // High quality luxury jewelry sample video presets for testing & fallback
 const SAMPLE_VIDEOS = [
@@ -76,8 +77,7 @@ export const AdminHeroTab: React.FC = () => {
 
     try {
       setIsUploading(true);
-      const storageKey = targetField === 'videoUrl' ? 'hero_video_desktop' : 'hero_video_mobile';
-      const persistentUrl = await saveMediaBlob(storageKey, file);
+      const persistentUrl = await uploadHeroVideoToCloud(file);
 
       setForm((prev) => ({
         ...prev,
@@ -86,7 +86,7 @@ export const AdminHeroTab: React.FC = () => {
         uploadedVideoFileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
       }));
 
-      showToast(`Video "${file.name}" uploaded successfully!`, 'success');
+      showToast(`Video "${file.name}" uploaded to cloud & synced across all browsers!`, 'success');
     } catch (err) {
       console.error(err);
       setValidationError('Failed to process video file.');
@@ -125,7 +125,7 @@ export const AdminHeroTab: React.FC = () => {
 
   const handleRemoveCustomVideo = async () => {
     try {
-      await removeMediaBlob('hero_video_desktop');
+      await removeHeroVideoFromCloud();
     } catch (e) {
       console.warn(e);
     }

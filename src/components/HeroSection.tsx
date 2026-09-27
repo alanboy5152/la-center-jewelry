@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getMediaUrl } from '../services/mediaStorage';
+import { getHeroVideoFromCloudOrCache } from '../services/cloudVideoStorage';
 
 export const HeroSection: React.FC = () => {
   const { heroConfig } = useApp();
@@ -12,8 +12,7 @@ export const HeroSection: React.FC = () => {
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [currentVideoSrc, setCurrentVideoSrc] = useState<string>('/videos/hero-jewelry.mp4');
 
-  const defaultPoster =
-    'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=85&w=1920&auto=format&fit=crop';
+  const defaultPoster = '/videos/hero-poster.jpg';
 
   const posterImage =
     heroConfig.posterUrl &&
@@ -21,33 +20,30 @@ export const HeroSection: React.FC = () => {
       ? heroConfig.posterUrl
       : defaultPoster;
 
-  // Resolve video source: Prioritize custom video uploaded to IndexedDB, then valid URL, then bundled video
+  // Resolve video source: Prioritize custom video uploaded to Firestore cloud chunks, then valid URL, then bundled video
   useEffect(() => {
     let isMounted = true;
 
     async function resolveSource() {
-      // 1. First priority: Check IndexedDB for custom video uploaded directly from device
+      // 1. First priority: Check Cloud Video Storage (downloads chunks from Firestore or gets local cache)
       try {
-        const storedBlob = await getMediaUrl('hero_video_desktop');
-        if (storedBlob && isMounted) {
-          setCurrentVideoSrc(storedBlob);
+        const cloudVideoUrl = await getHeroVideoFromCloudOrCache();
+        if (cloudVideoUrl && isMounted) {
+          setCurrentVideoSrc(cloudVideoUrl);
           setVideoError(false);
           return;
         }
       } catch (err) {
-        console.warn('Could not read IndexedDB video:', err);
+        console.warn('Could not read cloud hero video:', err);
       }
 
-      // 2. Second priority: If heroConfig has a valid active URL
-      if (heroConfig.videoUrl) {
-        // If it's a blob URL that wasn't found in IndexedDB, fallback to bundled video
-        if (heroConfig.videoUrl.startsWith('blob:')) {
-          if (isMounted) setCurrentVideoSrc('/videos/hero-jewelry.mp4');
-        } else if (!heroConfig.videoUrl.includes('commondatastorage.googleapis.com')) {
-          if (isMounted) setCurrentVideoSrc(heroConfig.videoUrl);
-        } else {
-          if (isMounted) setCurrentVideoSrc('/videos/hero-jewelry.mp4');
-        }
+      // 2. Second priority: If heroConfig has a valid active URL (non-blob, non-commondatastorage)
+      if (
+        heroConfig.videoUrl &&
+        !heroConfig.videoUrl.startsWith('blob:') &&
+        !heroConfig.videoUrl.includes('commondatastorage.googleapis.com')
+      ) {
+        if (isMounted) setCurrentVideoSrc(heroConfig.videoUrl);
       } else {
         if (isMounted) setCurrentVideoSrc('/videos/hero-jewelry.mp4');
       }
