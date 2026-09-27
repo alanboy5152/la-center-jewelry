@@ -193,7 +193,9 @@ export const ProductDetailPage: React.FC = () => {
                       poster={currentMedia.poster}
                       controls
                       autoPlay
+                      muted
                       playsInline
+                      preload="metadata"
                       className="w-full h-full object-cover"
                     />
                   </div>

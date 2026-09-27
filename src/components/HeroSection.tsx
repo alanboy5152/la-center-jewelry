@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { getMediaUrl } from '../services/mediaStorage';
 
 export const HeroSection: React.FC = () => {
   const { heroConfig } = useApp();
@@ -8,19 +9,106 @@ export const HeroSection: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(heroConfig.autoplay ?? true);
   const [isMuted, setIsMuted] = useState(true);
   const [videoError, setVideoError] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [currentVideoSrc, setCurrentVideoSrc] = useState<string>('/videos/hero-jewelry.mp4');
 
-  // Sync video play state if autoplay or videoUrl changes
+  const defaultPoster =
+    'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=85&w=1920&auto=format&fit=crop';
+
+  const posterImage =
+    heroConfig.posterUrl &&
+    !heroConfig.posterUrl.includes('photo-1515562141207-7a88fb7ce338')
+      ? heroConfig.posterUrl
+      : defaultPoster;
+
+  // Resolve video source: Prioritize custom video uploaded to IndexedDB, then valid URL, then bundled video
   useEffect(() => {
-    setVideoError(false);
-    if (videoRef.current) {
-      if (heroConfig.autoplay ?? true) {
-        videoRef.current.play().catch(() => {
-          // Autoplay was prevented by browser policy, keep muted
-          setIsPlaying(false);
-        });
+    let isMounted = true;
+
+    async function resolveSource() {
+      // 1. First priority: Check IndexedDB for custom video uploaded directly from device
+      try {
+        const storedBlob = await getMediaUrl('hero_video_desktop');
+        if (storedBlob && isMounted) {
+          setCurrentVideoSrc(storedBlob);
+          setVideoError(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not read IndexedDB video:', err);
+      }
+
+      // 2. Second priority: If heroConfig has a valid active URL
+      if (heroConfig.videoUrl) {
+        // If it's a blob URL that wasn't found in IndexedDB, fallback to bundled video
+        if (heroConfig.videoUrl.startsWith('blob:')) {
+          if (isMounted) setCurrentVideoSrc('/videos/hero-jewelry.mp4');
+        } else if (!heroConfig.videoUrl.includes('commondatastorage.googleapis.com')) {
+          if (isMounted) setCurrentVideoSrc(heroConfig.videoUrl);
+        } else {
+          if (isMounted) setCurrentVideoSrc('/videos/hero-jewelry.mp4');
+        }
+      } else {
+        if (isMounted) setCurrentVideoSrc('/videos/hero-jewelry.mp4');
+      }
+      if (isMounted) setVideoError(false);
+    }
+
+    resolveSource();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [heroConfig.videoUrl]);
+
+  // Ensure video autoplays immediately when currentVideoSrc changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+
+    if (heroConfig.autoplay ?? true) {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setIsVideoLoaded(true);
+          })
+          .catch(() => {
+            // Autoplay policy prevented, will resume on user interaction
+            setIsPlaying(false);
+          });
       }
     }
-  }, [heroConfig.videoUrl, heroConfig.autoplay]);
+  }, [currentVideoSrc, heroConfig.autoplay]);
+
+  // One-time interaction fallback to ensure video plays if browser blocked unprompted autoplay
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      if (videoRef.current && videoRef.current.paused) {
+        videoRef.current.muted = true;
+        videoRef.current
+          .play()
+          .then(() => {
+            setIsPlaying(true);
+            setIsVideoLoaded(true);
+          })
+          .catch(() => {});
+      }
+    };
+
+    window.addEventListener('touchstart', handleFirstInteraction, { once: true, passive: true });
+    window.addEventListener('click', handleFirstInteraction, { once: true, passive: true });
+    window.addEventListener('scroll', handleFirstInteraction, { once: true, passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('scroll', handleFirstInteraction);
+    };
+  }, []);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -46,43 +134,64 @@ export const HeroSection: React.FC = () => {
       id="hero-storefront-section"
     >
       {/* =========================================================
-          BACKGROUND LAYER: PURE VIDEO HERO
+          BACKGROUND LAYER: PURE VIDEO HERO WITH INSTANT POSTER BACKDROP
           ========================================================= */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#120F0D]">
-        {!videoError && heroConfig.videoUrl ? (
+        {/* Underlying Poster Image to prevent any black screen while video is initializing */}
+        <img
+          src={posterImage}
+          alt="L.A Center Jewelry Inc Storefront Showcase"
+          className="absolute inset-0 w-full h-full object-cover object-center z-0"
+          loading="eager"
+          decoding="async"
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            if (target.src !== defaultPoster) {
+              target.src = defaultPoster;
+            }
+          }}
+        />
+
+        {!videoError && currentVideoSrc ? (
           <video
             ref={videoRef}
+            key={currentVideoSrc}
+            src={currentVideoSrc}
             autoPlay={heroConfig.autoplay ?? true}
             loop
             muted={isMuted}
             playsInline
-            onError={() => setVideoError(true)}
-            className={`w-full h-full object-cover transition-transform duration-1000 ease-out ${
+            preload="auto"
+            poster={posterImage}
+            onLoadedData={() => {
+              setIsVideoLoaded(true);
+              setVideoError(false);
+            }}
+            onPlaying={() => {
+              setIsPlaying(true);
+              setIsVideoLoaded(true);
+              setVideoError(false);
+            }}
+            onError={(e) => {
+              console.warn('Hero video failed to load, falling back to local hero-jewelry.mp4', e);
+              if (currentVideoSrc !== '/videos/hero-jewelry.mp4') {
+                setCurrentVideoSrc('/videos/hero-jewelry.mp4');
+                setVideoError(false);
+              } else {
+                setVideoError(true);
+              }
+            }}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out z-10 ${
+              isVideoLoaded ? 'opacity-100' : 'opacity-90'
+            } ${
               heroConfig.videoPosition === 'top'
                 ? 'object-top'
                 : heroConfig.videoPosition === 'bottom'
                 ? 'object-bottom'
                 : 'object-center'
             }`}
-          >
-            {heroConfig.mobileVideoUrl && (
-              <source
-                src={heroConfig.mobileVideoUrl}
-                media="(max-width: 640px)"
-                type="video/mp4"
-              />
-            )}
-            <source src={heroConfig.videoUrl} type="video/mp4" />
-          </video>
-        ) : heroConfig.posterUrl && !heroConfig.posterUrl.includes('photo-1515562141207-7a88fb7ce338') ? (
-          <img
-            src={heroConfig.posterUrl}
-            alt="L.A Center Jewelry Inc Storefront 720 S Broadway Los Angeles"
-            className="w-full h-full object-cover object-center"
           />
-        ) : (
-          <div className="w-full h-full bg-[#120F0D]" />
-        )}
+        ) : null}
 
         {/* Cinematic Overlay: Soft dark cinematic wash so video is clearly visible while text is 100% crisp and readable */}
         <div

@@ -330,7 +330,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     videos: [
       {
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        url: '/videos/hero-jewelry.mp4',
         poster: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop',
         title: '360 Diamond Rotation Video',
       },
@@ -373,7 +373,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     ],
     videos: [
       {
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        url: '/videos/hero-jewelry.mp4',
         poster: 'https://images.unsplash.com/photo-1611591475871-332906b3a09c?q=80&w=1200&auto=format&fit=crop',
         title: 'Bracelet Fluidity Showcase',
       },
@@ -753,7 +753,7 @@ export const DEFAULT_SHOWCASE_VIDEOS = [
     id: 'vid-showcase-1',
     title: 'Elysian Solitaire Master Cut',
     subtitle: 'Flawless symmetry and fire under micro-faceting inspection',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     posterUrl: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop',
     productId: 'prod-diamond-solitaire',
     productName: 'Elysian 2.5ct Diamond Solitaire Ring',
@@ -763,7 +763,7 @@ export const DEFAULT_SHOWCASE_VIDEOS = [
     id: 'vid-showcase-2',
     title: 'Riviera Tennis Bracelet Articulation',
     subtitle: 'Silken flexibility engineered with micro-hinged 18k gold joints',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     posterUrl: 'https://images.unsplash.com/photo-1611591475871-332906b3a09c?q=80&w=1200&auto=format&fit=crop',
     productId: 'prod-gold-tennis-bracelet',
     productName: 'Pavé Diamond Riviera Tennis Bracelet',
@@ -773,7 +773,7 @@ export const DEFAULT_SHOWCASE_VIDEOS = [
     id: 'vid-showcase-3',
     title: 'Sovereign Automatic Caliber',
     subtitle: 'Baguette diamond bezel and hand-finished oscillating weight',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     posterUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1200&auto=format&fit=crop',
     productId: 'prod-luxury-chronograph',
     productName: 'Sovereign Diamond Bezel Chronograph',
@@ -783,7 +783,7 @@ export const DEFAULT_SHOWCASE_VIDEOS = [
     id: 'vid-showcase-4',
     title: 'Broadway Cuban Link Craftsmanship',
     subtitle: 'Hand-filed bevels and mirror polish in downtown Los Angeles',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     posterUrl: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?q=80&w=1200&auto=format&fit=crop',
     productId: 'prod-mens-cuban-chain',
     productName: 'Broadway 14k Solid Miami Cuban Link',
@@ -793,10 +793,10 @@ export const DEFAULT_SHOWCASE_VIDEOS = [
 
 // Initial Hero Config
 export const DEFAULT_HERO_CONFIG: HeroConfig = {
-  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-  mobileVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-  posterUrl: '',
-  mobilePosterUrl: '',
+  videoUrl: '/videos/hero-jewelry.mp4',
+  mobileVideoUrl: '/videos/hero-jewelry-mobile.mp4',
+  posterUrl: '/videos/hero-poster.jpg',
+  mobilePosterUrl: '/videos/hero-poster-mobile.jpg',
   smallText: 'L.A CENTER JEWELRY INC',
   headline: '𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬',
   tagline: 'Jewelry for a Lifetime',
@@ -818,7 +818,7 @@ export const DEFAULT_JEWELRY_VIDEOS: JewelryVideo[] = [
     id: 'jvid-1',
     title: 'Elysian Solitaire Master Cut',
     description: 'Flawless symmetry and diamond fire under micro-faceting inspection.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1000&auto=format&fit=crop',
     productId: 'prod-diamond-solitaire',
     productName: 'Elysian 2.5ct Diamond Solitaire Ring',
@@ -832,7 +832,7 @@ export const DEFAULT_JEWELRY_VIDEOS: JewelryVideo[] = [
     id: 'jvid-2',
     title: 'Riviera Diamond Tennis Bracelet',
     description: 'Silken flexibility engineered with micro-hinged 18k solid gold joints.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1611591475871-332906b3a09c?q=80&w=1000&auto=format&fit=crop',
     productId: 'prod-gold-tennis-bracelet',
     productName: 'Pavé Diamond Riviera Tennis Bracelet',
@@ -846,7 +846,7 @@ export const DEFAULT_JEWELRY_VIDEOS: JewelryVideo[] = [
     id: 'jvid-3',
     title: 'Broadway Miami Cuban Link',
     description: 'Hand-filed bevels and liquid mirror polish crafted in Downtown Los Angeles.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?q=80&w=1000&auto=format&fit=crop',
     productId: 'prod-mens-cuban-chain',
     productName: 'Broadway 14k Solid Miami Cuban Link',
@@ -860,7 +860,7 @@ export const DEFAULT_JEWELRY_VIDEOS: JewelryVideo[] = [
     id: 'jvid-4',
     title: 'Sovereign Automatic Caliber',
     description: 'Baguette diamond bezel and hand-finished oscillating weight.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1000&auto=format&fit=crop',
     productId: 'prod-luxury-chronograph',
     productName: 'Sovereign Diamond Bezel Chronograph',
@@ -874,7 +874,7 @@ export const DEFAULT_JEWELRY_VIDEOS: JewelryVideo[] = [
     id: 'jvid-5',
     title: 'Celestial Diamond Halo Pendant',
     description: 'Brilliant round center diamond encircled by micro-pavé diamonds on 18k chain.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1000&auto=format&fit=crop',
     productId: 'prod-halo-pendant',
     productName: 'Celestial Diamond Halo Pendant',
@@ -888,7 +888,7 @@ export const DEFAULT_JEWELRY_VIDEOS: JewelryVideo[] = [
     id: 'jvid-6',
     title: 'South Sea Pearl Drop Earrings',
     description: 'Lustrous 12mm Australian South Sea pearls accented with graduated diamonds.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=1000&auto=format&fit=crop',
     productId: 'prod-pearl-earrings',
     productName: 'South Sea Pearl Drop Earrings',
@@ -902,7 +902,7 @@ export const DEFAULT_JEWELRY_VIDEOS: JewelryVideo[] = [
     id: 'jvid-7',
     title: 'Eternal Promise Bridal Suite',
     description: 'Matching engagement ring and diamond contour wedding band in 950 platinum.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=1000&auto=format&fit=crop',
     productId: 'prod-bridal-suite',
     productName: 'Eternal Promise Platinum Bridal Suite',
@@ -916,7 +916,7 @@ export const DEFAULT_JEWELRY_VIDEOS: JewelryVideo[] = [
     id: 'jvid-8',
     title: 'Emerald-Cut Diamond Solitaire',
     description: 'Step-cut diamond with hall-of-mirrors clarity set in a clean cathedral shank.',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    videoUrl: '/videos/hero-jewelry.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1000&auto=format&fit=crop',
     productId: 'prod-emerald-solitaire',
     productName: 'Emerald-Cut Diamond Solitaire',
@@ -970,7 +970,7 @@ export const DEFAULT_STOREFRONT_MEDIA: StorefrontMediaItem[] = [
     id: 'sf-5',
     title: 'Cinematic Storefront Tour',
     type: 'video',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    url: '/videos/hero-jewelry.mp4',
     caption: 'Cinematic walkthrough of our Broadway jewelry showroom.',
     order: 5,
     createdAt: '2026-03-05T12:00:00Z',
@@ -1345,12 +1345,12 @@ export const DEFAULT_MEDIA: MediaItem[] = [
   {
     id: 'med-4',
     name: 'cinematic-jewelry-showcase.mp4',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    url: '/videos/hero-jewelry.mp4',
     type: 'video',
     mimeType: 'video/mp4',
-    sizeBytes: 15400000,
-    duration: '0:15',
-    posterUrl: '',
+    sizeBytes: 349734,
+    duration: '0:12',
+    posterUrl: '/videos/hero-poster.jpg',
     createdAt: '2026-01-15T09:00:00Z',
   },
 ];
@@ -1805,19 +1805,37 @@ class DatabaseService {
       let needsSave = false;
       // Permanently remove the legacy pearl necklace image if stored in user's browser
       if (parsed.posterUrl && parsed.posterUrl.includes('photo-1515562141207-7a88fb7ce338')) {
-        parsed.posterUrl = '';
+        parsed.posterUrl = '/videos/hero-poster.jpg';
         needsSave = true;
       }
       if (parsed.mobilePosterUrl && parsed.mobilePosterUrl.includes('photo-1515562141207-7a88fb7ce338')) {
-        parsed.mobilePosterUrl = '';
+        parsed.mobilePosterUrl = '/videos/hero-poster-mobile.jpg';
+        needsSave = true;
+      }
+
+      // Upgrade obsolete or broken external Google Commondatastorage sample video URLs to local ultra-fast video
+      if (!parsed.videoUrl || parsed.videoUrl.includes('commondatastorage.googleapis.com') || parsed.videoUrl.includes('TearsOfSteel')) {
+        parsed.videoUrl = '/videos/hero-jewelry.mp4';
+        needsSave = true;
+      }
+      if (!parsed.mobileVideoUrl || parsed.mobileVideoUrl.includes('commondatastorage.googleapis.com') || parsed.mobileVideoUrl.includes('ForBiggerBlazes')) {
+        parsed.mobileVideoUrl = '/videos/hero-jewelry-mobile.mp4';
+        needsSave = true;
+      }
+      if (!parsed.posterUrl) {
+        parsed.posterUrl = '/videos/hero-poster.jpg';
+        needsSave = true;
+      }
+      if (!parsed.mobilePosterUrl) {
+        parsed.mobilePosterUrl = '/videos/hero-poster-mobile.jpg';
         needsSave = true;
       }
 
       const merged: HeroConfig = {
         ...DEFAULT_HERO_CONFIG,
         ...parsed,
-        posterUrl: parsed.posterUrl || '',
-        mobilePosterUrl: parsed.mobilePosterUrl || '',
+        posterUrl: parsed.posterUrl || '/videos/hero-poster.jpg',
+        mobilePosterUrl: parsed.mobilePosterUrl || '/videos/hero-poster-mobile.jpg',
         activeMode: 'video',
       };
 

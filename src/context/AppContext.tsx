@@ -46,6 +46,8 @@ import {
   saveCustomerToFirestore,
   deleteCustomerFromFirestore,
   saveSettingsToFirestore,
+  subscribeToHeroConfig,
+  saveHeroConfigToFirestore,
 } from '../services/firestoreSync';
 
 export interface Toast {
@@ -491,6 +493,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     });
 
+    const unsubHero = subscribeToHeroConfig((cloudHero) => {
+      if (cloudHero) {
+        setHeroConfig((prev) => ({
+          ...prev,
+          ...cloudHero,
+          videoUrl: (cloudHero.videoUrl && !cloudHero.videoUrl.includes('commondatastorage.googleapis.com'))
+            ? cloudHero.videoUrl
+            : prev.videoUrl,
+        }));
+        db.saveHeroConfig(cloudHero);
+      }
+    });
+
     return () => {
       unsubProducts();
       unsubCategories();
@@ -499,6 +514,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       unsubCustomers();
       unsubBanners();
       unsubMedia();
+      unsubHero();
     };
   }, []);
 
@@ -954,6 +970,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const updateHeroConfig = (cfg: HeroConfig) => {
     setHeroConfig(cfg);
     db.saveHeroConfig(cfg);
+    saveHeroConfigToFirestore(cfg).catch(console.warn);
   };
 
   const updateHomepageSections = (sections: HomepageSections) => {

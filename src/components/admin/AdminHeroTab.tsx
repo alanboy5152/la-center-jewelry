@@ -24,19 +24,14 @@ import { saveMediaBlob, removeMediaBlob } from '../../services/mediaStorage';
 // High quality luxury jewelry sample video presets for testing & fallback
 const SAMPLE_VIDEOS = [
   {
-    name: '💎 Diamond Fire & Symmetry',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    poster: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1920&auto=format&fit=crop',
+    name: '💎 L.A Center Diamond & Gold Showcase (Instant 4K)',
+    url: '/videos/hero-jewelry.mp4',
+    poster: '/videos/hero-poster.jpg',
   },
   {
-    name: '💍 Master Goldsmith Atelier',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-    poster: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=1920&auto=format&fit=crop',
-  },
-  {
-    name: '✨ Broadway Luxury Showroom',
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
-    poster: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1920&auto=format&fit=crop',
+    name: '📱 Mobile-Optimized Fast Video',
+    url: '/videos/hero-jewelry-mobile.mp4',
+    poster: '/videos/hero-poster-mobile.jpg',
   },
 ];
 
@@ -597,7 +592,8 @@ export const AdminHeroTab: React.FC = () => {
                   loop
                   muted
                   playsInline
-                  poster={form.posterUrl}
+                  preload="auto"
+                  poster={form.posterUrl || '/videos/hero-poster.jpg'}
                   className={`absolute inset-0 w-full h-full object-cover ${
                     form.videoPosition === 'top'
                       ? 'object-top'
@@ -706,7 +702,8 @@ export const AdminHeroTab: React.FC = () => {
                 loop
                 muted
                 playsInline
-                poster={form.posterUrl}
+                preload="auto"
+                poster={form.posterUrl || '/videos/hero-poster.jpg'}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (

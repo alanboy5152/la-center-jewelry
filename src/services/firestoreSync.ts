@@ -8,7 +8,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { firestoreDb, handleFirestoreError, OperationType, testFirestoreConnection } from './firebase';
-import { Product, Category, Order, SiteSettings, Customer, Banner, StorefrontMediaItem, Review } from '../types';
+import { Product, Category, Order, SiteSettings, Customer, Banner, StorefrontMediaItem, Review, HeroConfig } from '../types';
 import { DEFAULT_PRODUCTS, DEFAULT_CATEGORIES, DEFAULT_CUSTOMERS, db } from './databaseService';
 
 // Initialize connection test
@@ -417,4 +417,49 @@ export async function saveReviewsToFirestore(reviews: Review[]): Promise<void> {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
+
+/**
+ * Real-time listener for Storefront Hero Section Config
+ */
+export function subscribeToHeroConfig(onHeroUpdated: (hero: HeroConfig) => void): () => void {
+  try {
+    const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'hero');
+    return onSnapshot(
+      docRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data && typeof data === 'object') {
+            onHeroUpdated(data as HeroConfig);
+          }
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/hero`);
+      }
+    );
+  } catch (error) {
+    console.warn('Could not subscribe to Firestore hero:', error);
+    return () => {};
+  }
+}
+
+export async function saveHeroConfigToFirestore(hero: HeroConfig): Promise<void> {
+  const path = `${SETTINGS_COLLECTION}/hero`;
+  try {
+    const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'hero');
+    // Don't send machine-local ephemeral blob URLs to Firestore
+    const sanitized = { ...hero };
+    if (sanitized.videoUrl?.startsWith('blob:')) {
+      delete (sanitized as Record<string, unknown>).videoUrl;
+    }
+    if (sanitized.mobileVideoUrl?.startsWith('blob:')) {
+      delete (sanitized as Record<string, unknown>).mobileVideoUrl;
+    }
+    await setDoc(docRef, sanitizeForFirestore(sanitized), { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
 

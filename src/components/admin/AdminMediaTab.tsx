@@ -461,6 +461,7 @@ export const AdminMediaTab: React.FC = () => {
                 <video
                   src={previewItem.url}
                   autoPlay
+                  muted
                   controls
                   playsInline
                   className="max-h-[60vh] w-auto object-contain"
