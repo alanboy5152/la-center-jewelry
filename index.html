@@ -3,6 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        if (window.location.hash) {
+          var clean = window.location.hash.replace(/^#\/?/, '');
+          window.history.replaceState(null, '', clean ? '/' + clean : '/');
+        }
+      })();
+    </script>
     <title>L.A Center Jewelry Inc | Fine Jewelry Boutique in Los Angeles</title>
     <meta name="description" content="Discover timeless fine jewelry, diamond engagement rings, gold chains, luxury watches, and custom artisan creations at L.A Center Jewelry Inc on Broadway, Los Angeles." />
     
