@@ -1,0 +1,6 @@
+{
+  "name": "L.A Center Jewelry Inc",
+  "description": "Luxury fine jewelry boutique in Los Angeles, California featuring diamonds, gold rings, bridal sets, luxury watches, and custom artisan jewelry.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

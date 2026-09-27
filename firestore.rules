@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all unknown paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Product collection: public catalog viewable by all shoppers
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update: if isValidId(productId) &&
+        request.resource.data.name is string && request.resource.data.name.size() <= 300 &&
+        request.resource.data.sku is string && request.resource.data.sku.size() <= 100 &&
+        request.resource.data.price is number && request.resource.data.price >= 0;
+      allow delete: if isValidId(productId);
+    }
+
+    // Categories: public catalog navigation
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if isValidId(categoryId) &&
+        request.resource.data.name is string && request.resource.data.name.size() <= 200;
+      allow delete: if isValidId(categoryId);
+    }
+
+    // Orders: checkout submissions by customers and management
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if isValidId(orderId) &&
+        request.resource.data.orderNumber is string &&
+        request.resource.data.total is number && request.resource.data.total >= 0;
+      allow update: if isValidId(orderId);
+      allow delete: if isValidId(orderId);
+    }
+
+    // Customers: Registered website user accounts and patron profiles
+    match /customers/{customerId} {
+      allow read: if true;
+      allow create, update: if isValidId(customerId);
+      allow delete: if isValidId(customerId);
+    }
+
+    // Site settings: public read for branding, contact, and shipping thresholds
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isValidId(settingId);
+    }
+  }
+}

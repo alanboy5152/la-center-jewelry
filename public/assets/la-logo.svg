@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <!-- Base Specular Gold Gradient -->
+    <linearGradient id="goldLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE89E" />
+      <stop offset="25%" stop-color="#FCD364" />
+      <stop offset="50%" stop-color="#E5AF36" />
+      <stop offset="75%" stop-color="#C58D1C" />
+      <stop offset="100%" stop-color="#FFE599" />
+    </linearGradient>
+
+    <!-- Deep Bevel Shadow Gradient -->
+    <linearGradient id="goldDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A57318" />
+      <stop offset="40%" stop-color="#734708" />
+      <stop offset="70%" stop-color="#4C2C02" />
+      <stop offset="100%" stop-color="#301A00" />
+    </linearGradient>
+
+    <!-- Vertical Stem Light Facet -->
+    <linearGradient id="stemLight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFF2BA" />
+      <stop offset="20%" stop-color="#FCD569" />
+      <stop offset="60%" stop-color="#DDA126" />
+      <stop offset="90%" stop-color="#FCE69C" />
+      <stop offset="100%" stop-color="#FFFFFF" />
+    </linearGradient>
+
+    <!-- Vertical Stem Dark Shaded Facet -->
+    <linearGradient id="stemDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#452702" />
+      <stop offset="25%" stop-color="#6E4209" />
+      <stop offset="65%" stop-color="#9E6815" />
+      <stop offset="90%" stop-color="#BE8723" />
+      <stop offset="100%" stop-color="#DEAA3D" />
+    </linearGradient>
+
+    <!-- Ribbon Outer Surface Flow -->
+    <linearGradient id="ribbonOuter" x1="0%" y1="0%" x2="100%" y2="80%">
+      <stop offset="0%" stop-color="#80500B" />
+      <stop offset="15%" stop-color="#D69F2A" />
+      <stop offset="35%" stop-color="#FFF1B8" />
+      <stop offset="55%" stop-color="#F4C953" />
+      <stop offset="75%" stop-color="#A87216" />
+      <stop offset="90%" stop-color="#FFEDB0" />
+      <stop offset="100%" stop-color="#87560E" />
+    </linearGradient>
+
+    <!-- Ribbon Inner Shadow Surface -->
+    <linearGradient id="ribbonInner" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2D1901" />
+      <stop offset="30%" stop-color="#543306" />
+      <stop offset="70%" stop-color="#8C5C13" />
+      <stop offset="100%" stop-color="#C99426" />
+    </linearGradient>
+
+    <!-- Right Leg of A - Light Facet -->
+    <linearGradient id="legALight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="20%" stop-color="#FDE48C" />
+      <stop offset="50%" stop-color="#E2A92E" />
+      <stop offset="80%" stop-color="#C2871A" />
+      <stop offset="100%" stop-color="#F7D877" />
+    </linearGradient>
+
+    <!-- Right Leg of A - Dark Facet -->
+    <linearGradient id="legADark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#875711" />
+      <stop offset="35%" stop-color="#5E3706" />
+      <stop offset="70%" stop-color="#3B2002" />
+      <stop offset="100%" stop-color="#1A0D00" />
+    </linearGradient>
+
+    <!-- Soft Ambient Glow Filter -->
+    <filter id="luxuryGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComponentTransfer in="blur" result="glow1">
+        <feFuncA type="linear" slope="0.25" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="glow1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Drop Shadow for Interlocking Overlaps -->
+    <filter id="overlapShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="3" dy="8" stdDeviation="7" flood-color="#1A0F02" flood-opacity="0.6" />
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="5" stdDeviation="5" flood-color="#261603" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <g id="LA-Monogram-Emblem">
+    <!-- ==================== 1. LETTER 'A' (BACKGROUND ELEMENTS) ==================== -->
+    <!-- Left Thin Diagonal Leg of A -->
+    <g id="A-LeftLeg" filter="url(#softShadow)">
+      <!-- Left leg body with bevel -->
+      <polygon points="598,280 602,305 410,735 390,735" fill="url(#goldLight)" />
+      <polygon points="602,305 605,320 425,735 410,735" fill="url(#goldDark)" />
+    </g>
+
+    <!-- ==================== 2. LETTER 'L' (MAIN BODY) ==================== -->
+    <g id="Letter-L" filter="url(#softShadow)">
+      <!-- Top Serif of L -->
+      <!-- Left horn of top serif -->
+      <path d="M 205,180 C 235,180 278,210 278,260 L 278,350 L 332,350 L 332,240 C 332,205 385,180 455,180 Z" fill="url(#goldLight)" />
+      <path d="M 205,180 L 455,180 L 455,188 C 390,192 338,215 334,250 L 332,350 L 330,350 L 278,350 L 278,255 C 278,205 235,188 205,180 Z" fill="url(#goldDark)" opacity="0.35" />
+
+      <!-- Left Vertical Stem - Left Bevel Facet (High Reflection) -->
+      <path d="M 278,255 L 332,245 L 332,750 L 278,740 Z" fill="url(#stemLight)" />
+
+      <!-- Left Vertical Stem - Center Ridge Highlight -->
+      <line x1="332" y1="245" x2="332" y2="750" stroke="#FFF9DF" stroke-width="2.5" />
+
+      <!-- Left Vertical Stem - Right Bevel Facet (Rich Deep Gold Shading) -->
+      <path d="M 332,245 L 386,258 L 386,725 L 332,750 Z" fill="url(#stemDark)" />
+
+      <!-- Bottom Horizontal Base of L with Calligraphic Terminal Swoop -->
+      <!-- Bottom Base Left Foot Serif -->
+      <path d="M 190,790 C 230,788 278,775 278,735 L 332,745 L 332,790 L 190,790 Z" fill="url(#goldLight)" />
+      
+      <!-- Bottom Long Arm of L curving into graceful upward terminal -->
+      <path d="M 332,745 C 430,755 520,772 610,790 C 655,798 680,785 686,745 C 688,730 675,738 650,755 C 570,740 460,730 386,725 L 332,745 Z" fill="url(#goldLight)" />
+      
+      <!-- Bottom Terminal Shading and Accent Rim -->
+      <path d="M 190,790 L 610,790 C 660,798 684,775 686,745 C 670,768 640,785 590,782 C 500,775 390,765 332,765 L 332,790 Z" fill="url(#goldDark)" />
+      <!-- Sharp terminal fine tip -->
+      <path d="M 686,745 C 689,732 682,725 675,738 C 665,758 645,768 620,772 C 648,770 675,760 686,745 Z" fill="#FFEAA3" />
+    </g>
+
+    <!-- ==================== 3. LETTER 'A' (RIGHT LEG & APEX) ==================== -->
+    <g id="Letter-A-Main" filter="url(#softShadow)">
+      <!-- Apex of A (Chiseled Crown) -->
+      <polygon points="598,280 575,340 615,365 640,320" fill="url(#goldLight)" />
+      <polygon points="598,280 640,320 635,305 605,280" fill="url(#goldDark)" />
+      <!-- Apex Specular Highlight -->
+      <polygon points="598,280 604,300 588,328" fill="#FFFFFF" opacity="0.9" />
+
+      <!-- Right Leg of A - Left Chisel Facet (Facing Light) -->
+      <!-- Curves from apex down to base of right foot -->
+      <path d="M 575,340 L 725,660 L 700,740 L 665,790 L 735,790 L 778,740 L 640,320 Z" fill="url(#legALight)" />
+
+      <!-- Center Ridge Line of A Leg -->
+      <path d="M 598,280 L 778,740" stroke="#FFFCDF" stroke-width="2.5" />
+
+      <!-- Right Leg of A - Right Chisel Facet (Deep Shadow) -->
+      <path d="M 598,280 L 640,320 L 778,740 L 895,790 L 860,790 L 735,740 L 635,305 Z" fill="url(#legADark)" />
+
+      <!-- Right Leg Foot Serifs -->
+      <polygon points="665,790 735,790 705,765" fill="url(#goldLight)" />
+      <polygon points="860,790 895,790 830,765" fill="url(#goldDark)" />
+    </g>
+
+    <!-- ==================== 4. SWIRLING LUXURY RIBBON SASH ==================== -->
+    <!-- Ribbon Loop Back (Behind Stem of L) -->
+    <g id="Ribbon-BackLoop">
+      <!-- Back arc extending to the far left -->
+      <path d="M 278,350 C 230,345 160,370 125,430 C 105,465 110,510 135,545 C 160,578 210,600 278,605 C 240,580 215,550 195,510 C 180,480 185,440 220,410 C 240,392 265,385 285,385 Z" fill="url(#ribbonInner)" />
+      <!-- Outer metallic crest of the loop -->
+      <path d="M 278,350 C 220,345 150,375 120,430 C 100,470 108,515 135,545 C 120,510 120,465 140,430 C 170,380 230,358 278,355 Z" fill="url(#ribbonOuter)" />
+    </g>
+
+    <!-- Ribbon Front Swoop (Across L Stem and through A Leg) -->
+    <g id="Ribbon-FrontSwoop" filter="url(#overlapShadow)">
+      <!-- Main Swirling Sash Upper Lip (Bright Sheen) -->
+      <path d="M 135,545 C 180,590 260,612 360,612 C 450,612 550,580 640,545 C 720,515 790,525 845,580 C 875,612 888,655 888,675 C 885,640 860,590 810,555 C 755,520 685,520 610,545 C 520,575 420,600 330,595 C 240,590 175,565 135,545 Z" fill="url(#ribbonOuter)" />
+
+      <!-- Main Swirling Sash Beveled Lower Body (Warm 3D Dimension) -->
+      <path d="M 135,545 C 175,565 240,590 330,595 C 420,600 520,575 610,545 C 685,520 755,520 810,555 C 860,590 885,640 888,675 C 880,660 860,630 825,600 C 770,555 700,550 630,572 C 540,600 440,625 350,625 C 250,625 175,600 135,545 Z" fill="url(#ribbonInner)" />
+
+      <!-- Specular Light Ridge on Ribbon Center Curve -->
+      <path d="M 145,550 C 220,595 330,605 450,595 C 560,580 660,535 750,535 C 800,535 850,565 880,640" fill="none" stroke="#FFF6D0" stroke-width="2" opacity="0.85" />
+
+      <!-- Ultra-fine Ribbon Terminal Calligraphic Tip -->
+      <path d="M 888,675 C 888,665 882,648 870,632 C 878,648 885,662 888,675 Z" fill="#FFE59E" />
+    </g>
+
+    <!-- Specular Diamond Sparkle Accents on High Points -->
+    <!-- Top-left sparkle on L serif -->
+    <g transform="translate(205, 180) scale(0.6)">
+      <path d="M 0,-25 Q 0,0 25,0 Q 0,0 0,25 Q 0,0 -25,0 Q 0,0 0,-25 Z" fill="#FFFFFF" />
+      <circle cx="0" cy="0" r="4" fill="#FFE89E" />
+    </g>
+
+    <!-- Sparkle on Apex of A -->
+    <g transform="translate(598, 280) scale(0.7)">
+      <path d="M 0,-30 Q 0,0 30,0 Q 0,0 0,30 Q 0,0 -30,0 Q 0,0 0,-30 Z" fill="#FFFFFF" />
+      <circle cx="0" cy="0" r="5" fill="#FFE89E" />
+    </g>
+
+    <!-- Sparkle on Ribbon Right Arch -->
+    <g transform="translate(820, 560) scale(0.55)">
+      <path d="M 0,-25 Q 0,0 25,0 Q 0,0 0,25 Q 0,0 -25,0 Q 0,0 0,-25 Z" fill="#FFFFFF" />
+      <circle cx="0" cy="0" r="4" fill="#FFE89E" />
+    </g>
+  </g>
+</svg>

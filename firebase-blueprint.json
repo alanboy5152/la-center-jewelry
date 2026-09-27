@@ -1,0 +1,347 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Luxury fine jewelry product catalogue item",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique product identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the jewelry piece",
+          "maxLength": 300
+        },
+        "sku": {
+          "type": "string",
+          "description": "Stock Keeping Unit code",
+          "maxLength": 100
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-friendly slug",
+          "maxLength": 300
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Category identifier",
+          "maxLength": 100
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Name of the category",
+          "maxLength": 200
+        },
+        "subcategory": {
+          "type": "string",
+          "description": "Subcategory or collection name",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the jewelry piece",
+          "maxLength": 10000
+        },
+        "shortDescription": {
+          "type": "string",
+          "description": "Brief summary description",
+          "maxLength": 1000
+        },
+        "price": {
+          "type": "number",
+          "description": "Regular price in USD"
+        },
+        "salePrice": {
+          "type": "number",
+          "description": "Discounted sale price in USD"
+        },
+        "stockQuantity": {
+          "type": "number",
+          "description": "Available inventory units"
+        },
+        "status": {
+          "type": "string",
+          "description": "Publication status",
+          "enum": ["published", "draft", "out_of_stock"]
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Featured on homepage showcase"
+        },
+        "isNewArrival": {
+          "type": "boolean",
+          "description": "Flag for new arrivals section"
+        },
+        "isBestSeller": {
+          "type": "boolean",
+          "description": "Flag for best sellers section"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Average review rating"
+        },
+        "reviewsCount": {
+          "type": "number",
+          "description": "Number of reviews"
+        },
+        "thumbnail": {
+          "type": "string",
+          "description": "Primary preview image URL",
+          "maxLength": 500000
+        },
+        "material": {
+          "type": "string",
+          "description": "Jewelry material description",
+          "maxLength": 200
+        },
+        "metalType": {
+          "type": "string",
+          "description": "Type of precious metal",
+          "maxLength": 200
+        },
+        "stoneType": {
+          "type": "string",
+          "description": "Precious stone type or diamond grading",
+          "maxLength": 200
+        },
+        "weight": {
+          "type": "string",
+          "description": "Precious item weight in grams or carats",
+          "maxLength": 100
+        },
+        "brand": {
+          "type": "string",
+          "description": "Brand or manufacturer name",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["id", "name", "sku", "categoryId", "price", "stockQuantity", "status"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product department and collection category",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique category identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Category title",
+          "maxLength": 200
+        },
+        "slug": {
+          "type": "string",
+          "description": "Category slug",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "description": "Category description",
+          "maxLength": 2000
+        },
+        "image": {
+          "type": "string",
+          "description": "Cover banner image URL or Data URL",
+          "maxLength": 1000000
+        },
+        "order": {
+          "type": "number",
+          "description": "Display order index"
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Whether highlighted on home navigation"
+        }
+      },
+      "required": ["id", "name", "order"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase transaction record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique order ID"
+        },
+        "orderNumber": {
+          "type": "string",
+          "description": "Customer facing human readable order reference",
+          "maxLength": 100
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "Items subtotal before tax and discount"
+        },
+        "shipping": {
+          "type": "number",
+          "description": "Shipping fee"
+        },
+        "tax": {
+          "type": "number",
+          "description": "Estimated tax"
+        },
+        "discount": {
+          "type": "number",
+          "description": "Applied discount amount"
+        },
+        "total": {
+          "type": "number",
+          "description": "Final billed grand total"
+        },
+        "status": {
+          "type": "string",
+          "description": "Fulfillment status",
+          "enum": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "Status of payment transaction",
+          "enum": ["paid", "pending", "refunded"]
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment gateway or method used",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Order placement timestamp"
+        }
+      },
+      "required": ["id", "orderNumber", "subtotal", "total", "status", "paymentStatus", "paymentMethod"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Store configuration and global settings",
+      "type": "object",
+      "properties": {
+        "businessName": {
+          "type": "string",
+          "description": "Official store legal or trade name",
+          "maxLength": 200
+        },
+        "address": {
+          "type": "string",
+          "description": "Physical storefront address in LA",
+          "maxLength": 500
+        },
+        "phone": {
+          "type": "string",
+          "description": "Store phone contact",
+          "maxLength": 100
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "WhatsApp contact or chatbot phone number with country code",
+          "maxLength": 100
+        },
+        "whatsappEnabled": {
+          "type": "boolean",
+          "description": "Whether the storefront WhatsApp chatbot widget is enabled"
+        },
+        "email": {
+          "type": "string",
+          "description": "Store official email address",
+          "maxLength": 200
+        },
+        "currencySymbol": {
+          "type": "string",
+          "description": "Active currency symbol",
+          "maxLength": 10
+        },
+        "flatShippingRate": {
+          "type": "number",
+          "description": "Flat shipping rate in USD"
+        },
+        "freeShippingThreshold": {
+          "type": "number",
+          "description": "Free shipping threshold amount"
+        },
+        "adminCredentials": {
+          "type": "object",
+          "description": "Administrative login username and passcode",
+          "properties": {
+            "username": { "type": "string" },
+            "password": { "type": "string" },
+            "name": { "type": "string" },
+            "updatedAt": { "type": "string" }
+          }
+        },
+        "facebookPixel": {
+          "type": "object",
+          "description": "Meta Facebook Pixel ID and event tracking options",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "pixelId": { "type": "string" },
+            "accessToken": { "type": "string" },
+            "testEventCode": { "type": "string" },
+            "trackPageView": { "type": "boolean" },
+            "trackViewContent": { "type": "boolean" },
+            "trackAddToCart": { "type": "boolean" },
+            "trackInitiateCheckout": { "type": "boolean" },
+            "trackPurchase": { "type": "boolean" }
+          }
+        },
+        "apiKeys": {
+          "type": "array",
+          "description": "List of developer API keys and credentials"
+        }
+      },
+      "required": ["businessName", "phone", "email"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Registered patron or client user profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "ordersCount": { "type": "number" },
+        "totalSpent": { "type": "number" },
+        "registeredAt": { "type": "string" },
+        "address": { "type": "string" },
+        "source": { "type": "string" },
+        "preferredMetal": { "type": "string" },
+        "ringSize": { "type": "string" }
+      },
+      "required": ["id", "name", "email"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of fine jewelry catalogue products"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Collection of product categories and collections"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of customer purchase orders"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Collection of registered patrons and customers"
+    },
+    "/settings/{settingId}": {
+      "schema": "SiteSettings",
+      "description": "Global website and boutique configurations"
+    }
+  }
+}

@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none">
+  <defs>
+    <!-- Top Table Gradient -->
+    <linearGradient id="tableGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF8E1"/>
+      <stop offset="50%" stop-color="#F2D272"/>
+      <stop offset="100%" stop-color="#D4AF37"/>
+    </linearGradient>
+
+    <!-- Crown Left Facet -->
+    <linearGradient id="crownLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E1B846"/>
+      <stop offset="100%" stop-color="#A57C1B"/>
+    </linearGradient>
+
+    <!-- Crown Right Facet -->
+    <linearGradient id="crownRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEEA9A"/>
+      <stop offset="100%" stop-color="#C59C2C"/>
+    </linearGradient>
+
+    <!-- Crown Center Left -->
+    <linearGradient id="crownCenterLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF4CE"/>
+      <stop offset="100%" stop-color="#D4AF37"/>
+    </linearGradient>
+
+    <!-- Crown Center Right -->
+    <linearGradient id="crownCenterRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5D77F"/>
+      <stop offset="100%" stop-color="#B88E23"/>
+    </linearGradient>
+
+    <!-- Pavilion Center Main -->
+    <linearGradient id="pavilionCenter" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFF0B8"/>
+      <stop offset="35%" stop-color="#E5BE4A"/>
+      <stop offset="100%" stop-color="#7C5D10"/>
+    </linearGradient>
+
+    <!-- Pavilion Left Inner -->
+    <linearGradient id="pavilionLeftInner" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B38722"/>
+      <stop offset="100%" stop-color="#64490B"/>
+    </linearGradient>
+
+    <!-- Pavilion Right Inner -->
+    <linearGradient id="pavilionRightInner" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E9C45D"/>
+      <stop offset="100%" stop-color="#826112"/>
+    </linearGradient>
+
+    <!-- Pavilion Far Left -->
+    <linearGradient id="pavilionFarLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9E7416"/>
+      <stop offset="100%" stop-color="#4F3806"/>
+    </linearGradient>
+
+    <!-- Pavilion Far Right -->
+    <linearGradient id="pavilionFarRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#5E440A"/>
+    </linearGradient>
+
+    <!-- Gold Outline Stroke Gradient -->
+    <linearGradient id="goldStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B5B11"/>
+      <stop offset="50%" stop-color="#4E3A0B"/>
+      <stop offset="100%" stop-color="#382905"/>
+    </linearGradient>
+
+    <!-- Subtle sparkle/light reflection -->
+    <linearGradient id="sparkleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFF2A3" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Diamond Outer Filter Shadow for vivid pop on any background -->
+  <g filter="drop-shadow(0 2px 4px rgba(110, 80, 10, 0.25))">
+    <!-- 1. Crown / Table Elements (Top half) -->
+    <!-- Far Left Crown Kite/Triangle (30,16 to 10,40 to 28,40) -->
+    <polygon points="34,16 10,40 28,40" fill="url(#crownLeft)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Left Crown Trapezoid (34,16 to 48,16 to 42,40 to 28,40) -->
+    <polygon points="34,16 48,16 42,40 28,40" fill="url(#crownCenterLeft)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Table Main Facet (Center top) (48,16 to 72,16 to 60,40) -->
+    <polygon points="48,16 72,16 60,40" fill="url(#tableGrad)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Right Crown Trapezoid (72,16 to 86,16 to 92,40 to 78,40) -->
+    <polygon points="72,16 86,16 92,40 78,40" fill="url(#crownCenterRight)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Far Right Crown Kite/Triangle (86,16 to 110,40 to 92,40) -->
+    <polygon points="86,16 110,40 92,40" fill="url(#crownRight)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Center Bridge Crown Facets connecting table to girdle -->
+    <polygon points="48,16 60,40 42,40" fill="url(#crownLeft)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+    <polygon points="72,16 78,40 60,40" fill="url(#crownRight)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- 2. Pavilion Elements (Bottom half meeting at 60,92) -->
+    <!-- Far Left Pavilion Triangle (10,40 to 28,40 to 60,92) -->
+    <polygon points="10,40 28,40 60,92" fill="url(#pavilionFarLeft)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Left Inner Pavilion Triangle (28,40 to 42,40 to 60,92) -->
+    <polygon points="28,40 42,40 60,92" fill="url(#pavilionLeftInner)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Center Left Pavilion Triangle (42,40 to 60,40 to 60,92) -->
+    <polygon points="42,40 60,40 60,92" fill="url(#pavilionCenter)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Center Right Pavilion Triangle (60,40 to 78,40 to 60,92) -->
+    <polygon points="60,40 78,40 60,92" fill="url(#pavilionRightInner)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- Far Right Pavilion Triangle (78,40 to 110,40 to 60,92) -->
+    <polygon points="78,40 110,40 60,92" fill="url(#pavilionFarRight)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+    <polygon points="78,40 92,40 60,92" fill="url(#crownCenterRight)" stroke="#74540C" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- 3. Overall Crisp Outer Perimeter Reinforcement -->
+    <polygon points="34,16 86,16 110,40 60,92 10,40" fill="none" stroke="url(#goldStroke)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+
+    <!-- Girdle Separator Line (10,40 to 110,40) -->
+    <line x1="10" y1="40" x2="110" y2="40" stroke="#684A09" stroke-width="2.2" stroke-linecap="round"/>
+
+    <!-- Brilliant Prism Light Highlight (Upper Left Flash) -->
+    <polygon points="36,18 47,18 42,38 29,38" fill="url(#sparkleGrad)" opacity="0.6"/>
+
+    <!-- Small Brilliant Star Glint on upper corner -->
+    <circle cx="34" cy="16" r="2.5" fill="#FFFFFF" opacity="0.9"/>
+    <path d="M34,11 L34,21 M29,16 L39,16" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+  </g>
+</svg>

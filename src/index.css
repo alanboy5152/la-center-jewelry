@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-serif: 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'Montserrat', sans-serif;
+  }
+
+  html,
+  body {
+    font-family: var(--font-sans);
+    color: #1a1a1a;
+    background-color: #faf9f5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  #root {
+    overflow-x: clip;
+    max-width: 100%;
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-serif);
+  }
+}
+
+.font-brand-header {
+  font-family: 'Cinzel', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-serif-luxury {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-sans-luxury {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.font-script {
+  font-family: 'Great Vibes', 'Allura', 'Alex Brush', 'Edwardian Script ITC', cursive;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f0eb;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b59226;
+}
+
+/* Infinite Marquee Animation for Luxury Ticker Ribbon */
+@keyframes luxuryMarquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-luxury-marquee {
+  display: flex;
+  width: max-content;
+  animation: luxuryMarquee 38s linear infinite;
+  will-change: transform;
+}
+
