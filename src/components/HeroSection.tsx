@@ -1,34 +1,46 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getHeroVideoFromCloudOrCache } from '../services/cloudVideoStorage';
 
 export const HeroSection: React.FC = () => {
   const { heroConfig } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(heroConfig.autoplay ?? true);
-  const [isMuted, setIsMuted] = useState(true);
   const [videoError, setVideoError] = useState(false);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const [currentVideoSrc, setCurrentVideoSrc] = useState<string>('/videos/hero-jewelry.mp4');
 
-  const defaultPoster = '/videos/hero-poster.jpg';
+  // Synchronously compute the right initial video so mobile and desktop play immediately on first frame
+  const getInitialVideo = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      return '/videos/hero-jewelry-mobile.mp4';
+    }
+    return '/videos/hero-jewelry.mp4';
+  };
 
-  const posterImage =
-    heroConfig.posterUrl &&
-    !heroConfig.posterUrl.includes('photo-1515562141207-7a88fb7ce338')
-      ? heroConfig.posterUrl
-      : defaultPoster;
+  const [currentVideoSrc, setCurrentVideoSrc] = useState<string>(getInitialVideo);
 
-  // Resolve video source: Prioritize custom video uploaded to Firestore cloud chunks, then valid URL, then bundled video
+  // Handle screen resize between mobile and desktop if using default bundled video
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      const expected = isMobile ? '/videos/hero-jewelry-mobile.mp4' : '/videos/hero-jewelry.mp4';
+      if (
+        (currentVideoSrc === '/videos/hero-jewelry.mp4' || currentVideoSrc === '/videos/hero-jewelry-mobile.mp4') &&
+        currentVideoSrc !== expected
+      ) {
+        setCurrentVideoSrc(expected);
+      }
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, [currentVideoSrc]);
+
+  // Check Cloud Video Storage in background if an admin uploaded a custom cloud video
   useEffect(() => {
     let isMounted = true;
 
-    async function resolveSource() {
-      // 1. First priority: Check Cloud Video Storage (downloads chunks from Firestore or gets local cache)
+    async function checkCloudVideo() {
       try {
         const cloudVideoUrl = await getHeroVideoFromCloudOrCache();
-        if (cloudVideoUrl && isMounted) {
+        if (cloudVideoUrl && isMounted && cloudVideoUrl !== currentVideoSrc) {
           setCurrentVideoSrc(cloudVideoUrl);
           setVideoError(false);
           return;
@@ -37,30 +49,24 @@ export const HeroSection: React.FC = () => {
         console.warn('Could not read cloud hero video:', err);
       }
 
-      // 2. Second priority: If heroConfig has a valid active URL (non-blob, non-commondatastorage)
       if (
         heroConfig.videoUrl &&
         !heroConfig.videoUrl.startsWith('blob:') &&
-        !heroConfig.videoUrl.includes('commondatastorage.googleapis.com')
+        !heroConfig.videoUrl.includes('commondatastorage.googleapis.com') &&
+        heroConfig.videoUrl !== currentVideoSrc
       ) {
         if (isMounted) setCurrentVideoSrc(heroConfig.videoUrl);
-      } else {
-        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-        if (isMounted) {
-          setCurrentVideoSrc(isMobile ? '/videos/hero-jewelry-mobile.mp4' : '/videos/hero-jewelry.mp4');
-        }
       }
-      if (isMounted) setVideoError(false);
     }
 
-    resolveSource();
+    checkCloudVideo();
 
     return () => {
       isMounted = false;
     };
   }, [heroConfig.videoUrl]);
 
-  // Ensure video autoplays immediately when currentVideoSrc changes
+  // Video autoplay configuration and gesture trigger
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -75,88 +81,42 @@ export const HeroSection: React.FC = () => {
       video.muted = true;
       const playPromise = video.play();
       if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            setIsVideoLoaded(true);
-          })
-          .catch(() => {
-            // Autoplay waiting for user touch gesture on low-power mobile mode
-            setIsPlaying(false);
-          });
+        playPromise.catch(() => {});
       }
     };
 
-    if (heroConfig.autoplay ?? true) {
-      tryPlay();
-    }
+    tryPlay();
 
-    const onMobileInteraction = () => {
+    const onUserInteraction = () => {
       if (video.paused) {
         tryPlay();
       }
     };
 
-    window.addEventListener('touchstart', onMobileInteraction, { passive: true, once: true });
-    window.addEventListener('touchend', onMobileInteraction, { passive: true, once: true });
-    window.addEventListener('click', onMobileInteraction, { passive: true, once: true });
-    window.addEventListener('scroll', onMobileInteraction, { passive: true, once: true });
+    window.addEventListener('touchstart', onUserInteraction, { passive: true, once: true });
+    window.addEventListener('touchend', onUserInteraction, { passive: true, once: true });
+    window.addEventListener('click', onUserInteraction, { passive: true, once: true });
+    window.addEventListener('scroll', onUserInteraction, { passive: true, once: true });
 
     return () => {
-      window.removeEventListener('touchstart', onMobileInteraction);
-      window.removeEventListener('touchend', onMobileInteraction);
-      window.removeEventListener('click', onMobileInteraction);
-      window.removeEventListener('scroll', onMobileInteraction);
+      window.removeEventListener('touchstart', onUserInteraction);
+      window.removeEventListener('touchend', onUserInteraction);
+      window.removeEventListener('click', onUserInteraction);
+      window.removeEventListener('scroll', onUserInteraction);
     };
-  }, [currentVideoSrc, heroConfig.autoplay]);
-
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-    }
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
-  };
+  }, [currentVideoSrc]);
 
   if (!heroConfig.isEnabled) return null;
 
   return (
     <section
-      className="relative w-full h-[72vh] min-h-[480px] max-h-[760px] overflow-hidden bg-[#120F0D] flex flex-col items-center justify-center cursor-pointer"
+      className="relative w-full h-[72vh] min-h-[480px] max-h-[760px] overflow-hidden bg-[#120F0D] flex flex-col items-center justify-center"
       id="hero-storefront-section"
-      onClick={() => {
-        if (videoRef.current && videoRef.current.paused) {
-          togglePlay();
-        }
-      }}
     >
       {/* =========================================================
-          BACKGROUND LAYER: PURE VIDEO HERO WITH INSTANT POSTER BACKDROP
+          BACKGROUND LAYER: PURE VIDEO HERO (ZERO IMAGE FLASH)
           ========================================================= */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#120F0D]">
-        {/* Underlying Poster Image to prevent any black screen while video is initializing */}
-        <img
-          src={posterImage}
-          alt="L.A Center Jewelry Inc Storefront Showcase"
-          className="absolute inset-0 w-full h-full object-cover object-center z-0"
-          loading="eager"
-          decoding="async"
-          onError={(e) => {
-            const target = e.currentTarget as HTMLImageElement;
-            if (target.src !== defaultPoster) {
-              target.src = defaultPoster;
-            }
-          }}
-        />
-
         {!videoError && currentVideoSrc ? (
           <video
             ref={(el) => {
@@ -167,31 +127,20 @@ export const HeroSection: React.FC = () => {
                 el.setAttribute('muted', '');
                 el.setAttribute('playsinline', '');
                 el.setAttribute('webkit-playsinline', '');
+                el.play().catch(() => {});
               }
             }}
             key={currentVideoSrc}
             src={currentVideoSrc}
-            autoPlay={heroConfig.autoplay ?? true}
+            autoPlay
             loop
-            muted={isMuted}
+            muted
             playsInline
             preload="auto"
-            poster={posterImage}
-            onLoadedData={() => {
-              setIsVideoLoaded(true);
-              setVideoError(false);
-            }}
             onCanPlay={() => {
-              setIsVideoLoaded(true);
-              setVideoError(false);
-              if (videoRef.current && videoRef.current.paused && (heroConfig.autoplay ?? true)) {
+              if (videoRef.current && videoRef.current.paused) {
                 videoRef.current.play().catch(() => {});
               }
-            }}
-            onPlaying={() => {
-              setIsPlaying(true);
-              setIsVideoLoaded(true);
-              setVideoError(false);
             }}
             onError={(e) => {
               console.warn('Hero video failed to load, falling back to local hero-jewelry.mp4', e);
@@ -202,9 +151,7 @@ export const HeroSection: React.FC = () => {
                 setVideoError(true);
               }
             }}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out z-10 ${
-              isVideoLoaded ? 'opacity-100' : 'opacity-90'
-            } ${
+            className={`absolute inset-0 w-full h-full object-cover z-10 ${
               heroConfig.videoPosition === 'top'
                 ? 'object-top'
                 : heroConfig.videoPosition === 'bottom'
@@ -216,9 +163,9 @@ export const HeroSection: React.FC = () => {
 
         {/* Cinematic Overlay: Soft dark cinematic wash so video is clearly visible while text is 100% crisp and readable */}
         <div
-          className="absolute inset-0 transition-opacity duration-300 pointer-events-none"
+          className="absolute inset-0 transition-opacity duration-300 pointer-events-none z-10"
           style={{
-            background: `radial-gradient(ellipse at center, rgba(14, 10, 8, 0.45) 0%, rgba(10, 7, 5, 0.65) 100%)`,
+            background: `radial-gradient(ellipse at center, rgba(14, 10, 8, 0.42) 0%, rgba(10, 7, 5, 0.62) 100%)`,
           }}
         />
       </div>
@@ -257,8 +204,9 @@ export const HeroSection: React.FC = () => {
 
       {/* =========================================================
           BOTTOM CORNER PROMOTIONAL TEXT (FREE PARKING & SPECIAL PRICES)
+          Cleanly positioned at bottom-right with ample margins
           ========================================================= */}
-      <div className="absolute bottom-3 right-18 sm:bottom-4 sm:right-22 md:right-24 z-20 flex flex-col items-end text-right select-none pointer-events-none">
+      <div className="absolute bottom-3 right-4 sm:bottom-4 sm:right-6 md:right-8 z-20 flex flex-col items-end text-right select-none pointer-events-none">
         <p
           className="font-sans font-normal text-xs sm:text-sm tracking-wide text-[#F3CA52]"
           style={{
@@ -279,35 +227,6 @@ export const HeroSection: React.FC = () => {
           <span>30-50% Off</span>
         </p>
       </div>
-
-      {/* =========================================================
-          VIDEO PLAYBACK CONTROLS (PLAY/PAUSE & MUTE)
-          ========================================================= */}
-      {!videoError && currentVideoSrc && (
-        <div
-          className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-20 flex items-center gap-1.5 bg-[#16110F]/90 backdrop-blur-md border border-[#3E3029] rounded-full p-1.5 text-xs text-white/90 shadow-xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            onClick={togglePlay}
-            className="p-1.5 rounded-full hover:bg-white/10 hover:text-[#D4AF37] transition-colors cursor-pointer"
-            title={isPlaying ? 'Pause Video' : 'Play Video'}
-            aria-label={isPlaying ? 'Pause Video' : 'Play Video'}
-          >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            type="button"
-            onClick={toggleMute}
-            className="p-1.5 rounded-full hover:bg-white/10 hover:text-[#D4AF37] transition-colors cursor-pointer"
-            title={isMuted ? 'Unmute Video' : 'Mute Video'}
-            aria-label={isMuted ? 'Unmute Video' : 'Mute Video'}
-          >
-            {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-      )}
     </section>
   );
 };
