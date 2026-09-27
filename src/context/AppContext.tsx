@@ -552,9 +552,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Handle URL routing on initial load, hash change, and popstate
   useEffect(() => {
     const handleLocationChange = () => {
-      // Check hash first (e.g. #/admin or #admin)
-      const hash = window.location.hash.replace(/^#\/?/, '');
-      // Check pathname (e.g. /admin or /admin/dashboard or /login)
+      const rawHash = window.location.hash;
+      const hash = rawHash.replace(/^#\/?/, '');
       const pathname = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
 
       const isDirectAdminPath =
@@ -565,14 +564,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         pathname === 'admin-login' ||
         pathname === 'login';
 
-      let rawPath = hash || (isDirectAdminPath ? pathname : '');
+      let rawPath = pathname || hash || '';
       if (!rawPath || rawPath === '/') {
         setCurrentRoute('home');
+        if (rawHash) {
+          window.history.replaceState(null, '', window.location.pathname || '/');
+        }
         return;
       }
 
       const [path, queryPart] = rawPath.split('?');
       const cleanPath = path.toLowerCase().replace(/^\//, '').replace(/\/$/, '');
+
+      // Strip hash from address bar immediately if present
+      if (rawHash) {
+        const cleanUrl = '/' + cleanPath + (queryPart ? `?${queryPart}` : '');
+        window.history.replaceState(null, '', cleanUrl);
+      }
 
       if (cleanPath.startsWith('product/')) {
         const prodId = cleanPath.split('/')[1];
@@ -668,9 +676,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       trackPixelEvent('PageView', { route }, facebookPixel);
     }
 
-    let hashPath = '#' + route;
-    if (route === 'home') hashPath = '#/';
-    else if (route === 'product-details' && params?.productId) hashPath = `#/product/${params.productId}`;
+    let cleanUrlPath = '/' + route;
+    if (route === 'home') cleanUrlPath = '/';
+    else if (route === 'product-details' && params?.productId) cleanUrlPath = `/product/${params.productId}`;
     else if (route === 'shop') {
       const qParams = new URLSearchParams();
       if (params?.categorySlug) qParams.set('category', params.categorySlug);
@@ -678,12 +686,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (params?.metal) qParams.set('metal', params.metal);
       if (params?.stone) qParams.set('stone', params.stone);
       if (params?.query) qParams.set('q', params.query);
-      hashPath = qParams.toString() ? `#/shop?${qParams.toString()}` : '#/shop';
+      cleanUrlPath = qParams.toString() ? `/shop?${qParams.toString()}` : '/shop';
     }
-    else if (route === 'admin-dashboard') hashPath = `#/admin/dashboard`;
-    else if (route === 'admin-login') hashPath = `#/admin/login`;
+    else if (route === 'admin-dashboard') cleanUrlPath = `/admin/dashboard`;
+    else if (route === 'admin-login') cleanUrlPath = `/admin/login`;
 
-    window.history.pushState(null, '', hashPath);
+    window.history.pushState(null, '', cleanUrlPath);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

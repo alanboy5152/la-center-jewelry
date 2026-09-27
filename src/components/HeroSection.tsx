@@ -45,7 +45,10 @@ export const HeroSection: React.FC = () => {
       ) {
         if (isMounted) setCurrentVideoSrc(heroConfig.videoUrl);
       } else {
-        if (isMounted) setCurrentVideoSrc('/videos/hero-jewelry.mp4');
+        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+        if (isMounted) {
+          setCurrentVideoSrc(isMobile ? '/videos/hero-jewelry-mobile.mp4' : '/videos/hero-jewelry.mp4');
+        }
       }
       if (isMounted) setVideoError(false);
     }
@@ -62,9 +65,14 @@ export const HeroSection: React.FC = () => {
     const video = videoRef.current;
     if (!video) return;
 
+    video.defaultMuted = true;
     video.muted = true;
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
 
-    if (heroConfig.autoplay ?? true) {
+    const tryPlay = () => {
+      video.muted = true;
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
@@ -73,38 +81,34 @@ export const HeroSection: React.FC = () => {
             setIsVideoLoaded(true);
           })
           .catch(() => {
-            // Autoplay policy prevented, will resume on user interaction
+            // Autoplay waiting for user touch gesture on low-power mobile mode
             setIsPlaying(false);
           });
       }
-    }
-  }, [currentVideoSrc, heroConfig.autoplay]);
+    };
 
-  // One-time interaction fallback to ensure video plays if browser blocked unprompted autoplay
-  useEffect(() => {
-    const handleFirstInteraction = () => {
-      if (videoRef.current && videoRef.current.paused) {
-        videoRef.current.muted = true;
-        videoRef.current
-          .play()
-          .then(() => {
-            setIsPlaying(true);
-            setIsVideoLoaded(true);
-          })
-          .catch(() => {});
+    if (heroConfig.autoplay ?? true) {
+      tryPlay();
+    }
+
+    const onMobileInteraction = () => {
+      if (video.paused) {
+        tryPlay();
       }
     };
 
-    window.addEventListener('touchstart', handleFirstInteraction, { once: true, passive: true });
-    window.addEventListener('click', handleFirstInteraction, { once: true, passive: true });
-    window.addEventListener('scroll', handleFirstInteraction, { once: true, passive: true });
+    window.addEventListener('touchstart', onMobileInteraction, { passive: true, once: true });
+    window.addEventListener('touchend', onMobileInteraction, { passive: true, once: true });
+    window.addEventListener('click', onMobileInteraction, { passive: true, once: true });
+    window.addEventListener('scroll', onMobileInteraction, { passive: true, once: true });
 
     return () => {
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('click', handleFirstInteraction);
-      window.removeEventListener('scroll', handleFirstInteraction);
+      window.removeEventListener('touchstart', onMobileInteraction);
+      window.removeEventListener('touchend', onMobileInteraction);
+      window.removeEventListener('click', onMobileInteraction);
+      window.removeEventListener('scroll', onMobileInteraction);
     };
-  }, []);
+  }, [currentVideoSrc, heroConfig.autoplay]);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -126,8 +130,13 @@ export const HeroSection: React.FC = () => {
 
   return (
     <section
-      className="relative w-full h-[72vh] min-h-[480px] max-h-[760px] overflow-hidden bg-[#120F0D] flex flex-col items-center justify-center"
+      className="relative w-full h-[72vh] min-h-[480px] max-h-[760px] overflow-hidden bg-[#120F0D] flex flex-col items-center justify-center cursor-pointer"
       id="hero-storefront-section"
+      onClick={() => {
+        if (videoRef.current && videoRef.current.paused) {
+          togglePlay();
+        }
+      }}
     >
       {/* =========================================================
           BACKGROUND LAYER: PURE VIDEO HERO WITH INSTANT POSTER BACKDROP
@@ -150,7 +159,16 @@ export const HeroSection: React.FC = () => {
 
         {!videoError && currentVideoSrc ? (
           <video
-            ref={videoRef}
+            ref={(el) => {
+              videoRef.current = el;
+              if (el) {
+                el.defaultMuted = true;
+                el.muted = true;
+                el.setAttribute('muted', '');
+                el.setAttribute('playsinline', '');
+                el.setAttribute('webkit-playsinline', '');
+              }
+            }}
             key={currentVideoSrc}
             src={currentVideoSrc}
             autoPlay={heroConfig.autoplay ?? true}
@@ -162,6 +180,13 @@ export const HeroSection: React.FC = () => {
             onLoadedData={() => {
               setIsVideoLoaded(true);
               setVideoError(false);
+            }}
+            onCanPlay={() => {
+              setIsVideoLoaded(true);
+              setVideoError(false);
+              if (videoRef.current && videoRef.current.paused && (heroConfig.autoplay ?? true)) {
+                videoRef.current.play().catch(() => {});
+              }
             }}
             onPlaying={() => {
               setIsPlaying(true);
@@ -258,8 +283,11 @@ export const HeroSection: React.FC = () => {
       {/* =========================================================
           VIDEO PLAYBACK CONTROLS (PLAY/PAUSE & MUTE)
           ========================================================= */}
-      {!videoError && heroConfig.videoUrl && (
-        <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-20 flex items-center gap-1.5 bg-[#16110F]/90 backdrop-blur-md border border-[#3E3029] rounded-full p-1.5 text-xs text-white/90 shadow-xl">
+      {!videoError && currentVideoSrc && (
+        <div
+          className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-20 flex items-center gap-1.5 bg-[#16110F]/90 backdrop-blur-md border border-[#3E3029] rounded-full p-1.5 text-xs text-white/90 shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
             onClick={togglePlay}
