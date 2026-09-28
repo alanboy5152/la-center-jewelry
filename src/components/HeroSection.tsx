@@ -140,7 +140,7 @@ export const HeroSection: React.FC = () => {
 
   return (
     <section
-      className="relative w-full h-[72vh] min-h-[480px] max-h-[760px] overflow-hidden flex flex-col items-center justify-center cursor-pointer"
+      className="relative w-full aspect-video sm:aspect-video md:aspect-auto md:h-[72vh] md:min-h-[480px] md:max-h-[760px] overflow-hidden flex flex-col items-center justify-center cursor-pointer select-none"
       id="hero-storefront-section"
       onClick={() => {
         if (videoRef.current && videoRef.current.paused) {
@@ -150,7 +150,7 @@ export const HeroSection: React.FC = () => {
       }}
     >
       {/* =========================================================
-          BACKGROUND LAYER: PURE VIDEO HERO (ZERO IMAGE FLASH)
+          BACKGROUND LAYER: PURE VIDEO HERO (ZERO IMAGE FLASH, EXACT 16:9 ON MOBILE)
           ========================================================= */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-black">
         {!videoError && (
@@ -225,11 +225,12 @@ export const HeroSection: React.FC = () => {
           HERO TEXT OVERLAY (STOREFRONT WINDOW SIGNAGE)
           1. L.A Center Jewelry Inc (Calligraphy Script, Bold, Yellow/Gold, Single Line across all devices)
           2. Jewelry for a Lifetime (Sans-Serif, Thin / Non-Bold, Warm Golden Yellow)
+          Proportionately scaled to fit flawlessly inside 16:9 mobile viewport
           ========================================================= */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center my-auto py-8 select-none pointer-events-none">
-        {/* 1. Main store name: "𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬" strictly in a single line on all screen sizes with generous spacing */}
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center my-auto py-1 sm:py-4 md:py-8 select-none pointer-events-none">
+        {/* 1. Main store name: "𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬" strictly in a single line with balanced mobile sizing */}
         <h1
-          className="w-full whitespace-nowrap text-[17px] min-[360px]:text-[19px] min-[400px]:text-[22px] sm:text-[38px] md:text-[52px] lg:text-[68px] xl:text-[80px] leading-tight text-[#F3CA52] mb-2 sm:mb-3 select-none font-normal flex items-center justify-center gap-x-1.5 min-[360px]:gap-x-2 sm:gap-x-4 md:gap-x-6"
+          className="w-full whitespace-nowrap text-[13px] min-[360px]:text-[15px] min-[400px]:text-[17px] sm:text-[28px] md:text-[50px] lg:text-[64px] xl:text-[76px] leading-tight text-[#F3CA52] mb-0.5 sm:mb-2 md:mb-3 select-none font-normal flex items-center justify-center gap-x-1 min-[360px]:gap-x-1.5 sm:gap-x-4 md:gap-x-6"
           style={{
             fontFamily: "'Segoe UI Symbol', 'Apple Symbols', 'STIX Two Math', 'Cambria Math', 'DejaVu Sans', serif, system-ui, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 4px 14px rgba(0, 0, 0, 0.85), 0 0 24px rgba(243, 202, 82, 0.3)',
@@ -243,7 +244,7 @@ export const HeroSection: React.FC = () => {
 
         {/* 2. Tagline directly underneath: Non-bold / thin clean sans-serif */}
         <h2
-          className="font-sans font-light sm:font-normal text-xs min-[360px]:text-sm sm:text-xl md:text-2xl lg:text-[28px] tracking-[0.08em] sm:tracking-widest text-[#F3CA52]"
+          className="font-sans font-light sm:font-normal text-[9px] min-[360px]:text-[10px] sm:text-base md:text-2xl lg:text-[28px] tracking-[0.08em] sm:tracking-widest text-[#F3CA52]"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 8px rgba(0, 0, 0, 0.75)',
@@ -255,11 +256,11 @@ export const HeroSection: React.FC = () => {
 
       {/* =========================================================
           BOTTOM CORNER PROMOTIONAL TEXT (FREE PARKING & SPECIAL PRICES)
-          Cleanly positioned at bottom-right with ample margins
+          Neatly positioned with tight mobile padding so it never obstructs jewelry
           ========================================================= */}
-      <div className="absolute bottom-3 right-4 sm:bottom-4 sm:right-6 md:right-8 z-20 flex flex-col items-end text-right select-none pointer-events-none">
+      <div className="absolute bottom-1 right-2 sm:bottom-3 sm:right-4 md:right-8 z-20 flex flex-col items-end text-right select-none pointer-events-none">
         <p
-          className="font-sans font-normal text-xs sm:text-sm tracking-wide text-[#F3CA52]"
+          className="font-sans font-normal text-[8px] min-[360px]:text-[9px] sm:text-xs md:text-sm tracking-wide text-[#F3CA52]"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 8px rgba(0, 0, 0, 0.8)',
@@ -268,7 +269,7 @@ export const HeroSection: React.FC = () => {
           Free Parking
         </p>
         <p
-          className="font-sans font-normal text-[11px] sm:text-xs tracking-wide text-[#F3CA52] mt-0.5"
+          className="font-sans font-normal text-[7px] min-[360px]:text-[8px] sm:text-[11px] md:text-xs tracking-wide text-[#F3CA52] mt-0.5"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 8px rgba(0, 0, 0, 0.8)',
