@@ -360,36 +360,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     getMediaBlobRaw('hero_video_desktop').then((blob) => {
       if (blob) {
         setHeroConfig((prev) => {
-          if (prev.videoUrl === '') return prev;
+          if (!prev.videoUrl || prev.videoUrl === 'cloud_hero_video') return prev;
           const blobUrl = URL.createObjectURL(blob);
           return { ...prev, videoUrl: blobUrl };
         });
-
-        // Automatically sync to server filesystem so other browsers & Vercel get it
-        try {
-          const syncKey = 'lac_video_synced_size';
-          if (localStorage.getItem(syncKey) !== String(blob.size)) {
-            fetch('/api/upload-hero-video', {
-              method: 'POST',
-              headers: { 'Content-Type': blob.type || 'video/mp4' },
-              body: blob,
-            })
-              .then((res) => {
-                if (res.ok) {
-                  localStorage.setItem(syncKey, String(blob.size));
-                  console.log('Synchronized custom uploaded video to server filesystem.');
-                }
-              })
-              .catch(console.warn);
-          }
-        } catch {}
       }
     }).catch(() => {});
 
     getMediaBlobRaw('hero_video_mobile').then((blob) => {
       if (blob) {
         setHeroConfig((prev) => {
-          if (prev.mobileVideoUrl === '') return prev;
+          if (!prev.mobileVideoUrl || prev.mobileVideoUrl === 'cloud_hero_video') return prev;
           const blobUrl = URL.createObjectURL(blob);
           return { ...prev, mobileVideoUrl: blobUrl };
         });

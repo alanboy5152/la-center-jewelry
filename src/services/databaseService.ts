@@ -1803,31 +1803,39 @@ class DatabaseService {
       const parsed = JSON.parse(data);
 
       let needsSave = false;
-      // Permanently remove the legacy pearl necklace image if stored in user's browser
-      if (parsed.posterUrl && parsed.posterUrl.includes('photo-1515562141207-7a88fb7ce338')) {
-        parsed.posterUrl = '/videos/hero-poster.jpg';
+      // Permanently remove legacy default videos and posters so ONLY admin-uploaded videos show
+      if (
+        parsed.videoUrl === '/videos/hero-jewelry.mp4' ||
+        parsed.videoUrl === '/videos/hero-jewelry-mobile.mp4' ||
+        parsed.videoUrl?.includes('commondatastorage.googleapis.com') ||
+        parsed.videoUrl?.includes('TearsOfSteel')
+      ) {
+        parsed.videoUrl = '';
         needsSave = true;
       }
-      if (parsed.mobilePosterUrl && parsed.mobilePosterUrl.includes('photo-1515562141207-7a88fb7ce338')) {
-        parsed.mobilePosterUrl = '/videos/hero-poster-mobile.jpg';
+      if (
+        parsed.mobileVideoUrl === '/videos/hero-jewelry-mobile.mp4' ||
+        parsed.mobileVideoUrl === '/videos/hero-jewelry.mp4' ||
+        parsed.mobileVideoUrl?.includes('commondatastorage.googleapis.com') ||
+        parsed.mobileVideoUrl?.includes('ForBiggerBlazes')
+      ) {
+        parsed.mobileVideoUrl = '';
         needsSave = true;
       }
-
-      // Upgrade obsolete or broken external Google Commondatastorage sample video URLs to local ultra-fast video
-      if (!parsed.videoUrl || parsed.videoUrl.includes('commondatastorage.googleapis.com') || parsed.videoUrl.includes('TearsOfSteel')) {
-        parsed.videoUrl = '/videos/hero-jewelry.mp4';
+      if (
+        parsed.posterUrl === '/videos/hero-poster.jpg' ||
+        parsed.posterUrl === '/videos/hero-poster-mobile.jpg' ||
+        parsed.posterUrl?.includes('photo-1515562141207-7a88fb7ce338')
+      ) {
+        parsed.posterUrl = '';
         needsSave = true;
       }
-      if (!parsed.mobileVideoUrl || parsed.mobileVideoUrl.includes('commondatastorage.googleapis.com') || parsed.mobileVideoUrl.includes('ForBiggerBlazes')) {
-        parsed.mobileVideoUrl = '/videos/hero-jewelry-mobile.mp4';
-        needsSave = true;
-      }
-      if (!parsed.posterUrl) {
-        parsed.posterUrl = '/videos/hero-poster.jpg';
-        needsSave = true;
-      }
-      if (!parsed.mobilePosterUrl) {
-        parsed.mobilePosterUrl = '/videos/hero-poster-mobile.jpg';
+      if (
+        parsed.mobilePosterUrl === '/videos/hero-poster-mobile.jpg' ||
+        parsed.mobilePosterUrl === '/videos/hero-poster.jpg' ||
+        parsed.mobilePosterUrl?.includes('photo-1515562141207-7a88fb7ce338')
+      ) {
+        parsed.mobilePosterUrl = '';
         needsSave = true;
       }
 

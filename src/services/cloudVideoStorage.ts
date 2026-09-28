@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { firestoreDb } from './firebase';
 import { saveMediaBlob, getMediaUrl, removeMediaBlob } from './mediaStorage';
 
@@ -137,6 +137,34 @@ export async function getHeroVideoFromCloudOrCache(): Promise<string | null> {
   } catch (err) {
     console.warn('Could not retrieve cloud hero video:', err);
     return null;
+  }
+}
+
+/**
+ * Real-time listener for cloud hero video updates across all browsers
+ */
+export function subscribeToCloudHeroVideo(
+  onUpdate: (videoUrl: string | null) => void
+): () => void {
+  try {
+    const unsub = onSnapshot(
+      doc(firestoreDb, SETTINGS_COLLECTION, VIDEO_META_DOC),
+      async (snap) => {
+        if (!snap.exists()) {
+          onUpdate(null);
+          return;
+        }
+        const videoUrl = await getHeroVideoFromCloudOrCache();
+        onUpdate(videoUrl);
+      },
+      (error) => {
+        console.warn('Error subscribing to hero video:', error);
+      }
+    );
+    return unsub;
+  } catch (err) {
+    console.warn('Snapshot listener setup error:', err);
+    return () => {};
   }
 }
 

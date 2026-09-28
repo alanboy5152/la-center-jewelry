@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   Video,
@@ -16,8 +16,12 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { HeroConfig } from '../../types';
-import { saveMediaBlob, removeMediaBlob } from '../../services/mediaStorage';
-import { removeHeroVideoFromCloud } from '../../services/cloudVideoStorage';
+import { getMediaUrl } from '../../services/mediaStorage';
+import {
+  uploadHeroVideoToCloud,
+  getHeroVideoFromCloudOrCache,
+  removeHeroVideoFromCloud,
+} from '../../services/cloudVideoStorage';
 
 export const AdminHeroTab: React.FC = () => {
   const { heroConfig, updateHeroConfig, showToast } = useApp();
@@ -29,16 +33,54 @@ export const AdminHeroTab: React.FC = () => {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [previewIsPlaying, setPreviewIsPlaying] = useState(true);
+  const [previewVideoSrc, setPreviewVideoSrc] = useState<string>('');
+
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const modalVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Synchronously resolve video source for live preview
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolvePreview = async () => {
+      if (!form.videoUrl) {
+        if (isMounted) setPreviewVideoSrc('');
+        return;
+      }
+
+      if (form.videoUrl === 'cloud_hero_video') {
+        const cached = await getMediaUrl('hero_video_desktop');
+        if (cached && isMounted) {
+          setPreviewVideoSrc(cached);
+          return;
+        }
+        const cloudUrl = await getHeroVideoFromCloudOrCache();
+        if (cloudUrl && isMounted) {
+          setPreviewVideoSrc(cloudUrl);
+        }
+        return;
+      }
+
+      if (isMounted) {
+        setPreviewVideoSrc(form.videoUrl);
+      }
+    };
+
+    resolvePreview();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [form.videoUrl]);
 
   const handleChange = (field: keyof HeroConfig, value: string | number | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Video File Upload handler with automatic 16:9 widescreen processing
+  // Video File Upload handler with Cloud Firestore sync
   const handleVideoFileUpload = async (file: File) => {
     setValidationError(null);
 
@@ -57,62 +99,44 @@ export const AdminHeroTab: React.FC = () => {
 
     try {
       setIsUploading(true);
-      // 1. Immediate local IndexedDB persistence for 0ms instant playback
-      const localBlobUrl = await saveMediaBlob('hero_video_desktop', file);
+      setUploadProgress(10);
 
-      // 2. Set form state immediately
-      setForm((prev) => ({
-        ...prev,
-        videoUrl: localBlobUrl,
+      // Upload directly to Firestore Cloud in chunks so ALL browsers & devices see it
+      const localBlobUrl = await uploadHeroVideoToCloud(file, (percent) => {
+        setUploadProgress(percent);
+      });
+
+      setPreviewVideoSrc(localBlobUrl);
+
+      const updatedForm: HeroConfig = {
+        ...form,
+        videoUrl: 'cloud_hero_video',
+        mobileVideoUrl: 'cloud_hero_video',
         uploadedVideoFileName: file.name,
         uploadedVideoFileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      }));
+      };
 
-      // 3. Upload to server API so public/videos/hero-jewelry.mp4 is converted into 16:9
-      try {
-        const res = await fetch('/api/upload-hero-video', {
-          method: 'POST',
-          headers: { 'Content-Type': file.type || 'video/mp4' },
-          body: file,
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.videoUrl) {
-            setForm((prev) => ({
-              ...prev,
-              videoUrl: data.videoUrl,
-              mobileVideoUrl: data.mobileVideoUrl || data.videoUrl,
-            }));
-          }
-        }
-      } catch (uploadErr) {
-        console.warn('Server video write endpoint bypassed:', uploadErr);
-      }
+      setForm(updatedForm);
+      updateHeroConfig(updatedForm);
 
-      showToast(`Video "${file.name}" uploaded successfully!`, 'success');
+      showToast(`Video "${file.name}" uploaded to Cloud successfully!`, 'success');
     } catch (err) {
       console.error(err);
       setValidationError('Failed to process video file.');
       showToast('Could not save uploaded video file.', 'error');
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
   // Completely delete and purge the active hero video
   const handleDeleteVideo = async () => {
     try {
-      await removeMediaBlob('hero_video_desktop');
-      await removeMediaBlob('hero_video_mobile');
       await removeHeroVideoFromCloud();
-      await fetch('/api/upload-hero-video', { method: 'DELETE' }).catch(() => {});
     } catch (e) {
       console.warn('Cleanup warning:', e);
     }
-
-    try {
-      localStorage.removeItem('lac_video_synced_size');
-    } catch {}
 
     const updatedForm: HeroConfig = {
       ...form,
@@ -125,6 +149,7 @@ export const AdminHeroTab: React.FC = () => {
     };
 
     setForm(updatedForm);
+    setPreviewVideoSrc('');
     updateHeroConfig(updatedForm);
     showToast('Video deleted. Storefront updated.', 'success');
   };
@@ -245,7 +270,9 @@ export const AdminHeroTab: React.FC = () => {
               </div>
 
               <h4 className="text-sm font-semibold text-white mb-1">
-                {isUploading ? 'Uploading & Processing 16:9 Video...' : 'Choose a Video from Your Device'}
+                {isUploading
+                  ? `Uploading to Cloud (${uploadProgress}%)...`
+                  : 'Choose a Video from Your Device'}
               </h4>
               <p className="text-xs text-neutral-400 max-w-sm mb-4">
                 Drag &amp; drop your MP4 or WebM video file here, or click the button below to browse your files.
@@ -281,7 +308,7 @@ export const AdminHeroTab: React.FC = () => {
             {form.videoUrl && (
               <div className="flex items-center justify-between w-full p-3 bg-red-950/30 border border-red-900/50 rounded">
                 <div className="text-xs text-red-200">
-                  <span className="font-semibold block">A video is currently loaded.</span>
+                  <span className="font-semibold block">A custom video is currently active.</span>
                   <span className="text-[11px] text-red-300/80">Click delete to clear this video completely.</span>
                 </div>
                 <button
@@ -314,7 +341,7 @@ export const AdminHeroTab: React.FC = () => {
               </label>
               <input
                 type="url"
-                value={form.videoUrl}
+                value={form.videoUrl === 'cloud_hero_video' ? '' : form.videoUrl}
                 onChange={(e) => handleChange('videoUrl', e.target.value)}
                 placeholder="https://example.com/videos/storefront-video.mp4"
                 className="w-full bg-[#120E0C] border border-[#3E2D25] p-2.5 text-xs text-white focus:border-[#D4AF37] focus:outline-none font-mono"
@@ -415,7 +442,7 @@ export const AdminHeroTab: React.FC = () => {
                 <Eye className="w-4 h-4" />
                 <span>Live Hero Video Preview</span>
               </h3>
-              {form.videoUrl && (
+              {previewVideoSrc && (
                 <button
                   type="button"
                   onClick={togglePreviewPlay}
@@ -437,17 +464,16 @@ export const AdminHeroTab: React.FC = () => {
             {/* Scaled Preview Frame with Live Video in 16:9 */}
             <div className="relative aspect-video w-full bg-[#120E0C] border border-[#382A22] overflow-hidden flex flex-col items-center justify-center p-4 shadow-2xl">
               {/* Actual Video Playing */}
-              {form.videoUrl ? (
+              {previewVideoSrc ? (
                 <>
                   <video
                     ref={previewVideoRef}
-                    src={form.videoUrl}
+                    src={previewVideoSrc}
                     autoPlay
                     loop
                     muted
                     playsInline
                     preload="auto"
-                    poster={form.posterUrl || undefined}
                     className="absolute inset-0 w-full h-full object-cover object-center"
                   />
                   <div
@@ -476,8 +502,10 @@ export const AdminHeroTab: React.FC = () => {
                 <h4
                   className="w-full whitespace-nowrap text-base sm:text-xl font-normal text-[#F3CA52] leading-tight mb-1"
                   style={{
-                    fontFamily: "'Segoe UI Symbol', 'Apple Symbols', 'STIX Two Math', 'Cambria Math', serif, system-ui, sans-serif",
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 0 16px rgba(243, 202, 82, 0.3)',
+                    fontFamily:
+                      "'Segoe UI Symbol', 'Apple Symbols', 'STIX Two Math', 'Cambria Math', serif, system-ui, sans-serif",
+                    textShadow:
+                      '0 2px 4px rgba(0, 0, 0, 0.95), 0 0 16px rgba(243, 202, 82, 0.3)',
                   }}
                 >
                   {form.headline}
@@ -507,10 +535,10 @@ export const AdminHeroTab: React.FC = () => {
             <div className="p-3 bg-[#120E0C] border border-[#2B1E18] text-[11px] text-[#A89681] space-y-1.5">
               <div className="flex items-center gap-1.5 text-[#D4AF37] font-semibold">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Ready to Publish:</span>
+                <span>Cloud Synced:</span>
               </div>
               <p>
-                The video you upload will play across the homepage hero section as soon as you click <strong>SAVE &amp; PUBLISH</strong>.
+                The video you upload will be synced to cloud storage and will play across all visitor devices and browsers.
               </p>
             </div>
           </div>
@@ -547,17 +575,16 @@ export const AdminHeroTab: React.FC = () => {
 
           {/* Interactive Preview Viewport */}
           <div className="my-auto relative w-full max-w-5xl mx-auto h-[65vh] bg-[#12100F] border border-[#3E2E25] overflow-hidden flex flex-col items-center justify-center p-8 shadow-2xl">
-            {form.videoUrl ? (
+            {previewVideoSrc ? (
               <>
                 <video
                   ref={modalVideoRef}
-                  src={form.videoUrl}
+                  src={previewVideoSrc}
                   autoPlay
                   loop
                   muted
                   playsInline
                   preload="auto"
-                  poster={form.posterUrl || undefined}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div
@@ -580,8 +607,10 @@ export const AdminHeroTab: React.FC = () => {
               <h2
                 className="text-2xl sm:text-4xl md:text-5xl font-normal text-[#F3CA52] mb-2 leading-tight"
                 style={{
-                  fontFamily: "'Segoe UI Symbol', 'Apple Symbols', 'STIX Two Math', 'Cambria Math', serif, system-ui, sans-serif",
-                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 0 24px rgba(243, 202, 82, 0.3)',
+                  fontFamily:
+                    "'Segoe UI Symbol', 'Apple Symbols', 'STIX Two Math', 'Cambria Math', serif, system-ui, sans-serif",
+                  textShadow:
+                    '0 2px 4px rgba(0, 0, 0, 0.95), 0 0 24px rgba(243, 202, 82, 0.3)',
                 }}
               >
                 {form.headline}
