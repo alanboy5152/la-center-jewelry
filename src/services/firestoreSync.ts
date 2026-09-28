@@ -7,9 +7,15 @@ import {
   getDocs,
   writeBatch,
 } from 'firebase/firestore';
-import { firestoreDb, handleFirestoreError, OperationType, testFirestoreConnection } from './firebase';
+import {
+  firestoreDb,
+  handleFirestoreError,
+  OperationType,
+  testFirestoreConnection,
+  isFirestoreQuotaExceeded,
+} from './firebase';
 import { Product, Category, Order, SiteSettings, Customer, Banner, StorefrontMediaItem, Review, HeroConfig } from '../types';
-import { DEFAULT_PRODUCTS, DEFAULT_CATEGORIES, DEFAULT_CUSTOMERS, db } from './databaseService';
+import { DEFAULT_PRODUCTS, DEFAULT_CATEGORIES, DEFAULT_CUSTOMERS } from './databaseService';
 
 // Initialize connection test
 testFirestoreConnection();
@@ -24,6 +30,7 @@ const SETTINGS_COLLECTION = 'settings';
  * Seed initial data to Firestore if collection is empty
  */
 export async function seedFirestoreIfEmpty() {
+  if (isFirestoreQuotaExceeded) return;
   try {
     const productsSnapshot = await getDocs(collection(firestoreDb, PRODUCTS_COLLECTION));
     if (productsSnapshot.empty) {
@@ -37,9 +44,10 @@ export async function seedFirestoreIfEmpty() {
       await batch.commit();
     }
   } catch (error) {
-    console.warn('Firestore products seed check bypassed (offline/rules):', error);
+    console.warn('Firestore products seed check bypassed (offline/quota):', error);
   }
 
+  if (isFirestoreQuotaExceeded) return;
   try {
     const categoriesSnapshot = await getDocs(collection(firestoreDb, CATEGORIES_COLLECTION));
     if (categoriesSnapshot.empty) {
@@ -81,6 +89,7 @@ function sanitizeForFirestore<T extends Record<string, any>>(obj: T): Record<str
  * Real-time listener for Products collection
  */
 export function subscribeToProducts(onProductsUpdated: (products: Product[]) => void): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const colRef = collection(firestoreDb, PRODUCTS_COLLECTION);
     return onSnapshot(
@@ -99,7 +108,11 @@ export function subscribeToProducts(onProductsUpdated: (products: Product[]) => 
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, PRODUCTS_COLLECTION);
+        try {
+          handleFirestoreError(error, OperationType.GET, PRODUCTS_COLLECTION);
+        } catch (e) {
+          console.warn('Firestore products subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -112,6 +125,7 @@ export function subscribeToProducts(onProductsUpdated: (products: Product[]) => 
  * Real-time listener for Categories collection
  */
 export function subscribeToCategories(onCategoriesUpdated: (categories: Category[]) => void): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const colRef = collection(firestoreDb, CATEGORIES_COLLECTION);
     return onSnapshot(
@@ -130,7 +144,11 @@ export function subscribeToCategories(onCategoriesUpdated: (categories: Category
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, CATEGORIES_COLLECTION);
+        try {
+          handleFirestoreError(error, OperationType.GET, CATEGORIES_COLLECTION);
+        } catch (e) {
+          console.warn('Firestore categories subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -143,6 +161,7 @@ export function subscribeToCategories(onCategoriesUpdated: (categories: Category
  * Real-time listener for Orders collection
  */
 export function subscribeToOrders(onOrdersUpdated: (orders: Order[]) => void): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const colRef = collection(firestoreDb, ORDERS_COLLECTION);
     return onSnapshot(
@@ -161,7 +180,11 @@ export function subscribeToOrders(onOrdersUpdated: (orders: Order[]) => void): (
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, ORDERS_COLLECTION);
+        try {
+          handleFirestoreError(error, OperationType.GET, ORDERS_COLLECTION);
+        } catch (e) {
+          console.warn('Firestore orders subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -174,6 +197,7 @@ export function subscribeToOrders(onOrdersUpdated: (orders: Order[]) => void): (
  * Real-time listener for General Settings document
  */
 export function subscribeToSettings(onSettingsUpdated: (settings: SiteSettings) => void): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'general');
     return onSnapshot(
@@ -185,7 +209,11 @@ export function subscribeToSettings(onSettingsUpdated: (settings: SiteSettings) 
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/general`);
+        try {
+          handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/general`);
+        } catch (e) {
+          console.warn('Firestore settings subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -251,6 +279,7 @@ export async function saveOrderToFirestore(order: Order): Promise<void> {
  * Real-time listener for Customers & Registered Users collection
  */
 export function subscribeToCustomers(onCustomersUpdated: (customers: Customer[]) => void): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const colRef = collection(firestoreDb, CUSTOMERS_COLLECTION);
     return onSnapshot(
@@ -269,7 +298,11 @@ export function subscribeToCustomers(onCustomersUpdated: (customers: Customer[])
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, CUSTOMERS_COLLECTION);
+        try {
+          handleFirestoreError(error, OperationType.GET, CUSTOMERS_COLLECTION);
+        } catch (e) {
+          console.warn('Firestore customers subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -312,6 +345,7 @@ export async function saveSettingsToFirestore(settings: SiteSettings): Promise<v
  * Real-time listener for Promotional Banners
  */
 export function subscribeToBanners(onBannersUpdated: (banners: Banner[]) => void): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'banners');
     return onSnapshot(
@@ -325,7 +359,11 @@ export function subscribeToBanners(onBannersUpdated: (banners: Banner[]) => void
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/banners`);
+        try {
+          handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/banners`);
+        } catch (e) {
+          console.warn('Firestore banners subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -350,6 +388,7 @@ export async function saveBannersToFirestore(banners: Banner[]): Promise<void> {
 export function subscribeToStorefrontMedia(
   onMediaUpdated: (media: StorefrontMediaItem[]) => void
 ): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'storefront_media');
     return onSnapshot(
@@ -363,7 +402,11 @@ export function subscribeToStorefrontMedia(
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/storefront_media`);
+        try {
+          handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/storefront_media`);
+        } catch (e) {
+          console.warn('Firestore storefront media subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -386,6 +429,7 @@ export async function saveStorefrontMediaToFirestore(media: StorefrontMediaItem[
  * Real-time listener for Product Reviews
  */
 export function subscribeToReviews(onReviewsUpdated: (reviews: Review[]) => void): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'reviews');
     return onSnapshot(
@@ -399,7 +443,11 @@ export function subscribeToReviews(onReviewsUpdated: (reviews: Review[]) => void
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/reviews`);
+        try {
+          handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/reviews`);
+        } catch (e) {
+          console.warn('Firestore reviews subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -422,6 +470,7 @@ export async function saveReviewsToFirestore(reviews: Review[]): Promise<void> {
  * Real-time listener for Storefront Hero Section Config
  */
 export function subscribeToHeroConfig(onHeroUpdated: (hero: HeroConfig) => void): () => void {
+  if (isFirestoreQuotaExceeded) return () => {};
   try {
     const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'hero');
     return onSnapshot(
@@ -435,7 +484,11 @@ export function subscribeToHeroConfig(onHeroUpdated: (hero: HeroConfig) => void)
         }
       },
       (error) => {
-        handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/hero`);
+        try {
+          handleFirestoreError(error, OperationType.GET, `${SETTINGS_COLLECTION}/hero`);
+        } catch (e) {
+          console.warn('Firestore hero config subscription paused:', e);
+        }
       }
     );
   } catch (error) {
@@ -448,7 +501,6 @@ export async function saveHeroConfigToFirestore(hero: HeroConfig): Promise<void>
   const path = `${SETTINGS_COLLECTION}/hero`;
   try {
     const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'hero');
-    // Don't send machine-local ephemeral blob URLs to Firestore
     const sanitized = { ...hero };
     if (sanitized.videoUrl?.startsWith('blob:')) {
       delete (sanitized as Record<string, unknown>).videoUrl;
@@ -461,5 +513,3 @@ export async function saveHeroConfigToFirestore(hero: HeroConfig): Promise<void>
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
-
-
