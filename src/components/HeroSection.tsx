@@ -16,17 +16,25 @@ export const HeroSection: React.FC = () => {
     return heroConfig.videoUrl || '/videos/hero-jewelry.mp4';
   };
 
+  const getInitialPoster = () => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    if (isMobile) {
+      return heroConfig.mobilePosterUrl || '/videos/hero-poster-mobile.jpg';
+    }
+    return heroConfig.posterUrl || '/videos/hero-poster.jpg';
+  };
+
   const [currentVideoSrc, setCurrentVideoSrc] = useState<string>(getInitialVideo);
+  const [currentPoster, setCurrentPoster] = useState<string>(getInitialPoster);
 
   // Check for uploaded video from IndexedDB or heroConfig changes
   useEffect(() => {
     let isMounted = true;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
-    // 1. If heroConfig has a specific custom videoUrl, use it immediately
-    const configTarget =
-      typeof window !== 'undefined' && window.innerWidth <= 768
-        ? heroConfig.mobileVideoUrl || heroConfig.videoUrl
-        : heroConfig.videoUrl;
+    const configTarget = isMobile
+      ? heroConfig.mobileVideoUrl || heroConfig.videoUrl
+      : heroConfig.videoUrl;
 
     if (configTarget && configTarget !== currentVideoSrc) {
       setCurrentVideoSrc(configTarget);
@@ -38,7 +46,7 @@ export const HeroSection: React.FC = () => {
       return;
     }
 
-    // 2. Also check IndexedDB for persistent custom video
+    // Also check IndexedDB for persistent custom video
     getMediaUrl('hero_video_desktop')
       .then((blobUrl) => {
         if (blobUrl && isMounted && blobUrl !== currentVideoSrc) {
@@ -57,11 +65,12 @@ export const HeroSection: React.FC = () => {
     };
   }, [heroConfig.videoUrl, heroConfig.mobileVideoUrl]);
 
-  // Ensure autoplay kicks off immediately on mount and on first user gesture
+  // Ensure autoplay kicks off immediately on mount and on first user gesture across ALL browsers
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    // Strict muted inline attributes for Chromium, Safari iOS, Edge, and Firefox
     video.defaultMuted = true;
     video.muted = true;
     video.setAttribute('muted', '');
@@ -70,21 +79,44 @@ export const HeroSection: React.FC = () => {
     video.setAttribute('x5-playsinline', '');
 
     const tryPlay = () => {
-      if (video) {
-        video.muted = true;
-        const p = video.play();
+      const v = videoRef.current;
+      if (v) {
+        v.defaultMuted = true;
+        v.muted = true;
+        const p = v.play();
         if (p !== undefined) {
-          p.catch(() => {});
+          p.catch(() => {
+            // Autoplay blocked by browser policy until interaction
+          });
         }
       }
     };
 
     tryPlay();
 
+    // Multi-stage retry timers to beat aggressive browser power-saving throttles
+    const timer1 = setTimeout(tryPlay, 100);
+    const timer2 = setTimeout(tryPlay, 400);
+    const timer3 = setTimeout(tryPlay, 1000);
+    const timer4 = setTimeout(tryPlay, 2000);
+
     // Attach immediate user-interaction listeners across entire window
-    const touchTriggers = ['touchstart', 'touchend', 'pointerdown', 'click', 'scroll', 'visibilitychange'];
+    const touchTriggers = [
+      'touchstart',
+      'touchend',
+      'pointerdown',
+      'mousedown',
+      'click',
+      'scroll',
+      'wheel',
+      'keydown',
+      'mousemove',
+      'visibilitychange',
+    ];
+
     const handleGesture = () => {
-      if (video && video.paused) {
+      const v = videoRef.current;
+      if (v && v.paused) {
         tryPlay();
       }
     };
@@ -94,11 +126,15 @@ export const HeroSection: React.FC = () => {
     });
 
     return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
       touchTriggers.forEach((evt) => {
         window.removeEventListener(evt, handleGesture, { capture: true });
       });
     };
-  }, []);
+  }, [currentVideoSrc]);
 
   if (!heroConfig.isEnabled) return null;
 
@@ -116,7 +152,7 @@ export const HeroSection: React.FC = () => {
       {/* =========================================================
           BACKGROUND LAYER: PURE VIDEO HERO (ZERO IMAGE FLASH)
           ========================================================= */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden">
+      <div className="absolute inset-0 w-full h-full overflow-hidden bg-black">
         {!videoError && (
           <video
             ref={(el) => {
@@ -132,6 +168,7 @@ export const HeroSection: React.FC = () => {
               }
             }}
             src={currentVideoSrc}
+            poster={currentPoster}
             autoPlay
             loop
             muted
@@ -140,6 +177,10 @@ export const HeroSection: React.FC = () => {
             disablePictureInPicture
             disableRemotePlayback
             onLoadedMetadata={(e) => {
+              e.currentTarget.muted = true;
+              e.currentTarget.play().catch(() => {});
+            }}
+            onLoadedData={(e) => {
               e.currentTarget.muted = true;
               e.currentTarget.play().catch(() => {});
             }}
@@ -166,14 +207,16 @@ export const HeroSection: React.FC = () => {
                 ? 'object-bottom'
                 : 'object-center'
             }`}
-          />
+          >
+            <source src={currentVideoSrc} type="video/mp4" />
+          </video>
         )}
 
         {/* Soft subtle contrast wash so video shines through with absolute clarity */}
         <div
           className="absolute inset-0 pointer-events-none z-10"
           style={{
-            background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.5) 100%)',
+            background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.45) 100%)',
           }}
         />
       </div>
