@@ -39,9 +39,9 @@ async function startServer() {
 
       fs.writeFileSync(tempPath, buffer);
 
-      // Encode to pristine baseline H.264 + faststart with ffmpeg for universal browser support
-      const ffmpegCmd = `ffmpeg -y -i "${tempPath}" -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p -movflags +faststart -an "${targetDesktop}" && \
-ffmpeg -y -i "${tempPath}" -vf "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280" -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p -movflags +faststart -an "${targetMobile}" && \
+      // Encode to universal 16:9 widescreen (H.264 baseline + faststart) for desktop & mobile
+      const ffmpegCmd = `ffmpeg -y -i "${tempPath}" -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,setsar=1" -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p -video_track_timescale 24000 -movflags +faststart -an "${targetDesktop}" && \
+ffmpeg -y -i "${tempPath}" -vf "scale=854:480:force_original_aspect_ratio=increase,crop=854:480,setsar=1" -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p -video_track_timescale 24000 -movflags +faststart -an "${targetMobile}" && \
 ffmpeg -y -i "${targetDesktop}" -vframes 1 "${posterDesktop}" && \
 ffmpeg -y -i "${targetMobile}" -vframes 1 "${posterMobile}" && \
 rm -f "${tempPath}"`;

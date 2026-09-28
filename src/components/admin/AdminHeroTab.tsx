@@ -375,47 +375,6 @@ export const AdminHeroTab: React.FC = () => {
                 ))}
               </div>
             </div>
-
-            {/* Mobile Optional Video URL */}
-            <div className="space-y-1.5 pt-2 border-t border-[#261C16]">
-              <label className="text-xs text-neutral-300 font-semibold flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  Optional Mobile Video URL (Vertical 9:16 or 4:5)
-                </span>
-                {form.mobileVideoUrl && (
-                  <button
-                    type="button"
-                    onClick={() => handleChange('mobileVideoUrl', '')}
-                    className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" /> Clear
-                  </button>
-                )}
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={form.mobileVideoUrl || ''}
-                  onChange={(e) => handleChange('mobileVideoUrl', e.target.value)}
-                  placeholder="Leave empty to use main video on all devices"
-                  className="flex-1 bg-[#120E0C] border border-[#3E2D25] p-2 text-xs text-white focus:border-[#D4AF37] focus:outline-none font-mono"
-                />
-                <label className="px-3 py-2 bg-[#281D18] hover:bg-[#382922] border border-[#443128] text-xs text-[#D4AF37] font-semibold cursor-pointer flex items-center gap-1.5 shrink-0">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Upload Mobile</span>
-                  <input
-                    type="file"
-                    accept="video/mp4,video/webm"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleVideoFileUpload(file, 'mobileVideoUrl');
-                    }}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            </div>
           </div>
 
           {/* 2. VIDEO PLAYBACK SETTINGS */}
@@ -447,7 +406,7 @@ export const AdminHeroTab: React.FC = () => {
             </div>
 
             {/* Autoplay Toggle */}
-            <div className="flex items-center justify-between py-2 border-b border-[#281D18]">
+            <div className="flex items-center justify-between py-2">
               <div>
                 <span className="text-xs font-medium text-white block">
                   Autoplay Video on Entrance
@@ -465,79 +424,6 @@ export const AdminHeroTab: React.FC = () => {
                 />
                 <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37]" />
               </label>
-            </div>
-
-            {/* Video Alignment */}
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <span className="text-xs font-medium text-white block">
-                  Video Object Alignment
-                </span>
-                <span className="text-[11px] text-neutral-400">
-                  Vertical focal point positioning inside the full-screen frame.
-                </span>
-              </div>
-              <select
-                value={form.videoPosition || 'center'}
-                onChange={(e) => handleChange('videoPosition', e.target.value)}
-                className="bg-[#120E0C] border border-[#3E2D25] text-xs text-white p-2 focus:border-[#D4AF37] focus:outline-none"
-              >
-                <option value="center">Center</option>
-                <option value="top">Top (Fascia Focus)</option>
-                <option value="bottom">Bottom (Showroom Floor)</option>
-              </select>
-            </div>
-
-            {/* Fallback Posters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[#281D18]">
-              <div className="space-y-1.5">
-                <label className="text-xs text-neutral-300 font-semibold flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  Fallback Poster Image (JPG/WebP)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={form.posterUrl}
-                    onChange={(e) => handleChange('posterUrl', e.target.value)}
-                    className="w-full bg-[#120E0C] border border-[#3E2D25] p-2 text-xs text-white font-mono"
-                  />
-                  <label className="px-2.5 py-2 bg-[#281D18] border border-[#443128] text-xs text-[#D4AF37] cursor-pointer shrink-0" title="Upload Poster">
-                    <Upload className="w-3.5 h-3.5" />
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(e) => handleImageFileUpload(e, 'posterUrl')}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs text-neutral-300 font-semibold flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  Mobile Poster Image
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={form.mobilePosterUrl || ''}
-                    onChange={(e) => handleChange('mobilePosterUrl', e.target.value)}
-                    placeholder="Same as desktop if blank"
-                    className="w-full bg-[#120E0C] border border-[#3E2D25] p-2 text-xs text-white font-mono"
-                  />
-                  <label className="px-2.5 py-2 bg-[#281D18] border border-[#443128] text-xs text-[#D4AF37] cursor-pointer shrink-0" title="Upload Mobile Poster">
-                    <Upload className="w-3.5 h-3.5" />
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(e) => handleImageFileUpload(e, 'mobilePosterUrl')}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -603,8 +489,8 @@ export const AdminHeroTab: React.FC = () => {
               </button>
             </div>
 
-            {/* Scaled Preview Frame with Live Video */}
-            <div className="relative aspect-16/10 w-full bg-[#120E0C] border border-[#382A22] overflow-hidden flex flex-col items-center justify-center p-4 shadow-2xl">
+            {/* Scaled Preview Frame with Live Video in 16:9 */}
+            <div className="relative aspect-video w-full bg-[#120E0C] border border-[#382A22] overflow-hidden flex flex-col items-center justify-center p-4 shadow-2xl">
               {/* Actual Video Playing */}
               {form.videoUrl ? (
                 <video
@@ -616,17 +502,11 @@ export const AdminHeroTab: React.FC = () => {
                   playsInline
                   preload="auto"
                   poster={form.posterUrl || '/videos/hero-poster.jpg'}
-                  className={`absolute inset-0 w-full h-full object-cover ${
-                    form.videoPosition === 'top'
-                      ? 'object-top'
-                      : form.videoPosition === 'bottom'
-                      ? 'object-bottom'
-                      : 'object-center'
-                  }`}
+                  className="absolute inset-0 w-full h-full object-cover object-center"
                 />
               ) : (
                 <img
-                  src={form.posterUrl}
+                  src={form.posterUrl || '/videos/hero-poster.jpg'}
                   alt="Storefront Preview"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
@@ -730,7 +610,7 @@ export const AdminHeroTab: React.FC = () => {
               />
             ) : (
               <img
-                src={form.posterUrl}
+                src={form.posterUrl || '/videos/hero-poster.jpg'}
                 alt="Preview"
                 className="absolute inset-0 w-full h-full object-cover opacity-80"
               />

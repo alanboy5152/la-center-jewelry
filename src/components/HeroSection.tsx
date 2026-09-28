@@ -200,13 +200,7 @@ export const HeroSection: React.FC = () => {
                 setVideoError(true);
               }
             }}
-            className={`absolute inset-0 w-full h-full object-cover z-0 ${
-              heroConfig.videoPosition === 'top'
-                ? 'object-top'
-                : heroConfig.videoPosition === 'bottom'
-                ? 'object-bottom'
-                : 'object-center'
-            }`}
+            className="absolute inset-0 w-full h-full object-cover object-center z-0"
           >
             <source src={currentVideoSrc} type="video/mp4" />
           </video>
