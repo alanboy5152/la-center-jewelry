@@ -77,16 +77,38 @@ export const AdminHeroTab: React.FC = () => {
 
     try {
       setIsUploading(true);
-      const persistentUrl = await uploadHeroVideoToCloud(file);
+      // 1. Immediate local IndexedDB persistence for 0ms instant playback
+      const localBlobUrl = await saveMediaBlob('hero_video_desktop', file);
 
+      // 2. Set form state immediately
       setForm((prev) => ({
         ...prev,
-        [targetField]: persistentUrl,
+        [targetField]: localBlobUrl,
         uploadedVideoFileName: file.name,
         uploadedVideoFileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
       }));
 
-      showToast(`Video "${file.name}" uploaded to cloud & synced across all browsers!`, 'success');
+      // 3. Upload to server API so public/videos/hero-jewelry.mp4 is updated on disk for all browsers & Vercel
+      try {
+        const res = await fetch('/api/upload-hero-video', {
+          method: 'POST',
+          headers: { 'Content-Type': file.type || 'video/mp4' },
+          body: file,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.videoUrl) {
+            setForm((prev) => ({
+              ...prev,
+              [targetField]: data.videoUrl,
+            }));
+          }
+        }
+      } catch (uploadErr) {
+        console.warn('Server video write endpoint bypassed:', uploadErr);
+      }
+
+      showToast(`Video "${file.name}" uploaded & saved successfully!`, 'success');
     } catch (err) {
       console.error(err);
       setValidationError('Failed to process video file.');

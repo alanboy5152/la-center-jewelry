@@ -72,6 +72,26 @@ export async function getMediaUrl(key: string): Promise<string | null> {
 }
 
 /**
+ * Retrieve raw stored media Blob from IndexedDB
+ */
+export async function getMediaBlobRaw(key: string): Promise<Blob | null> {
+  try {
+    const db = await openDB();
+    const blob = await new Promise<Blob | null>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+    return blob;
+  } catch (err) {
+    console.warn('Could not read raw media blob from IndexedDB', err);
+    return null;
+  }
+}
+
+/**
  * Delete a media file from IndexedDB
  */
 export async function removeMediaBlob(key: string): Promise<void> {

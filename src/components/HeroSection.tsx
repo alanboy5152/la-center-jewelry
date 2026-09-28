@@ -1,23 +1,63 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { getHeroVideoFromCloudOrCache } from '../services/cloudVideoStorage';
+import { getMediaUrl } from '../services/mediaStorage';
 
 export const HeroSection: React.FC = () => {
   const { heroConfig } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoError, setVideoError] = useState(false);
 
-  // Synchronously determine initial video based on screen width
+  // Synchronously determine initial video based on heroConfig or screen width
   const getInitialVideo = () => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      return '/videos/hero-jewelry-mobile.mp4';
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    if (isMobile) {
+      return heroConfig.mobileVideoUrl || heroConfig.videoUrl || '/videos/hero-jewelry-mobile.mp4';
     }
-    return '/videos/hero-jewelry.mp4';
+    return heroConfig.videoUrl || '/videos/hero-jewelry.mp4';
   };
 
   const [currentVideoSrc, setCurrentVideoSrc] = useState<string>(getInitialVideo);
 
-  // Ensure autoplay kicks off immediately on mount and on first interaction
+  // Check for uploaded video from IndexedDB or heroConfig changes
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. If heroConfig has a specific custom videoUrl, use it immediately
+    const configTarget =
+      typeof window !== 'undefined' && window.innerWidth <= 768
+        ? heroConfig.mobileVideoUrl || heroConfig.videoUrl
+        : heroConfig.videoUrl;
+
+    if (configTarget && configTarget !== currentVideoSrc) {
+      setCurrentVideoSrc(configTarget);
+      if (videoRef.current) {
+        videoRef.current.src = configTarget;
+        videoRef.current.load();
+        videoRef.current.play().catch(() => {});
+      }
+      return;
+    }
+
+    // 2. Also check IndexedDB for persistent custom video
+    getMediaUrl('hero_video_desktop')
+      .then((blobUrl) => {
+        if (blobUrl && isMounted && blobUrl !== currentVideoSrc) {
+          setCurrentVideoSrc(blobUrl);
+          if (videoRef.current) {
+            videoRef.current.src = blobUrl;
+            videoRef.current.load();
+            videoRef.current.play().catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [heroConfig.videoUrl, heroConfig.mobileVideoUrl]);
+
+  // Ensure autoplay kicks off immediately on mount and on first user gesture
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -59,50 +99,6 @@ export const HeroSection: React.FC = () => {
       });
     };
   }, []);
-
-  // Check Cloud Video Storage in background if an admin uploaded a custom cloud video
-  useEffect(() => {
-    let isMounted = true;
-
-    async function checkCloudVideo() {
-      try {
-        const cloudVideoUrl = await getHeroVideoFromCloudOrCache();
-        if (cloudVideoUrl && isMounted && cloudVideoUrl !== currentVideoSrc) {
-          setCurrentVideoSrc(cloudVideoUrl);
-          if (videoRef.current) {
-            videoRef.current.src = cloudVideoUrl;
-            videoRef.current.muted = true;
-            videoRef.current.play().catch(() => {});
-          }
-          return;
-        }
-      } catch (err) {
-        console.warn('Could not read cloud hero video:', err);
-      }
-
-      if (
-        heroConfig.videoUrl &&
-        !heroConfig.videoUrl.startsWith('blob:') &&
-        !heroConfig.videoUrl.includes('commondatastorage.googleapis.com') &&
-        heroConfig.videoUrl !== currentVideoSrc
-      ) {
-        if (isMounted) {
-          setCurrentVideoSrc(heroConfig.videoUrl);
-          if (videoRef.current) {
-            videoRef.current.src = heroConfig.videoUrl;
-            videoRef.current.muted = true;
-            videoRef.current.play().catch(() => {});
-          }
-        }
-      }
-    }
-
-    checkCloudVideo();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [heroConfig.videoUrl]);
 
   if (!heroConfig.isEnabled) return null;
 

@@ -23,6 +23,7 @@ import { db } from '../services/databaseService';
 import { initFacebookPixel, trackPixelEvent } from '../utils/facebookPixel';
 import {
   getMediaUrl,
+  getMediaBlobRaw,
   saveCategoryImageDataUrl,
   getCategoryImageDataUrl,
   removeCategoryImageDataUrl,
@@ -355,14 +356,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }).catch(() => {});
 
     // Restore persistent uploaded videos from IndexedDB if present
-    getMediaUrl('hero_video_desktop').then((blobUrl) => {
-      if (blobUrl) {
+    getMediaBlobRaw('hero_video_desktop').then((blob) => {
+      if (blob) {
+        const blobUrl = URL.createObjectURL(blob);
         setHeroConfig((prev) => ({ ...prev, videoUrl: blobUrl }));
+
+        // Automatically sync to server filesystem so other browsers & Vercel get it
+        try {
+          const syncKey = 'lac_video_synced_size';
+          if (localStorage.getItem(syncKey) !== String(blob.size)) {
+            fetch('/api/upload-hero-video', {
+              method: 'POST',
+              headers: { 'Content-Type': blob.type || 'video/mp4' },
+              body: blob,
+            })
+              .then((res) => {
+                if (res.ok) {
+                  localStorage.setItem(syncKey, String(blob.size));
+                  console.log('Synchronized custom uploaded video to server filesystem.');
+                }
+              })
+              .catch(console.warn);
+          }
+        } catch {}
       }
     }).catch(() => {});
 
-    getMediaUrl('hero_video_mobile').then((blobUrl) => {
-      if (blobUrl) {
+    getMediaBlobRaw('hero_video_mobile').then((blob) => {
+      if (blob) {
+        const blobUrl = URL.createObjectURL(blob);
         setHeroConfig((prev) => ({ ...prev, mobileVideoUrl: blobUrl }));
       }
     }).catch(() => {});
