@@ -24,6 +24,7 @@ import { initFacebookPixel, trackPixelEvent } from '../utils/facebookPixel';
 import {
   getMediaUrl,
   getMediaBlobRaw,
+  removeMediaBlob,
   saveCategoryImageDataUrl,
   getCategoryImageDataUrl,
   removeCategoryImageDataUrl,
@@ -358,8 +359,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Restore persistent uploaded videos from IndexedDB if present
     getMediaBlobRaw('hero_video_desktop').then((blob) => {
       if (blob) {
-        const blobUrl = URL.createObjectURL(blob);
-        setHeroConfig((prev) => ({ ...prev, videoUrl: blobUrl }));
+        setHeroConfig((prev) => {
+          if (prev.videoUrl === '') return prev;
+          const blobUrl = URL.createObjectURL(blob);
+          return { ...prev, videoUrl: blobUrl };
+        });
 
         // Automatically sync to server filesystem so other browsers & Vercel get it
         try {
@@ -384,8 +388,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     getMediaBlobRaw('hero_video_mobile').then((blob) => {
       if (blob) {
-        const blobUrl = URL.createObjectURL(blob);
-        setHeroConfig((prev) => ({ ...prev, mobileVideoUrl: blobUrl }));
+        setHeroConfig((prev) => {
+          if (prev.mobileVideoUrl === '') return prev;
+          const blobUrl = URL.createObjectURL(blob);
+          return { ...prev, mobileVideoUrl: blobUrl };
+        });
       }
     }).catch(() => {});
   };
@@ -1001,6 +1008,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setHeroConfig(cfg);
     db.saveHeroConfig(cfg);
     saveHeroConfigToFirestore(cfg).catch(console.warn);
+
+    // If hero video is deleted or cleared, purge all cached media and server video
+    if (!cfg.videoUrl) {
+      removeMediaBlob('hero_video_desktop').catch(() => {});
+      removeMediaBlob('hero_video_mobile').catch(() => {});
+      try {
+        localStorage.removeItem('lac_video_synced_size');
+      } catch {}
+      fetch('/api/upload-hero-video', { method: 'DELETE' }).catch(() => {});
+    }
   };
 
   const updateHomepageSections = (sections: HomepageSections) => {

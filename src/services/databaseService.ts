@@ -793,10 +793,10 @@ export const DEFAULT_SHOWCASE_VIDEOS = [
 
 // Initial Hero Config
 export const DEFAULT_HERO_CONFIG: HeroConfig = {
-  videoUrl: '/videos/hero-jewelry.mp4',
-  mobileVideoUrl: '/videos/hero-jewelry-mobile.mp4',
-  posterUrl: '/videos/hero-poster.jpg',
-  mobilePosterUrl: '/videos/hero-poster-mobile.jpg',
+  videoUrl: '',
+  mobileVideoUrl: '',
+  posterUrl: '',
+  mobilePosterUrl: '',
   smallText: 'L.A CENTER JEWELRY INC',
   headline: '𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬',
   tagline: 'Jewelry for a Lifetime',

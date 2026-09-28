@@ -68,6 +68,24 @@ rm -f "${tempPath}"`;
     }
   });
 
+  // Purge hero video and posters when admin deletes the video
+  app.delete('/api/upload-hero-video', (req, res) => {
+    try {
+      const videosDir = path.join(__dirname, 'public/videos');
+      ['hero-jewelry.mp4', 'hero-jewelry-mobile.mp4', 'hero-poster.jpg', 'hero-poster-mobile.jpg'].forEach((file) => {
+        const p = path.join(videosDir, file);
+        if (fs.existsSync(p)) {
+          try { fs.unlinkSync(p); } catch {}
+        }
+      });
+      console.log('Hero videos and posters purged from public/videos/');
+      res.json({ success: true, deleted: true });
+    } catch (err: any) {
+      console.error('Delete video error:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Mount Vite middleware in dev
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

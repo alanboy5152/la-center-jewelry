@@ -11,17 +11,17 @@ export const HeroSection: React.FC = () => {
   const getInitialVideo = () => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     if (isMobile) {
-      return heroConfig.mobileVideoUrl || heroConfig.videoUrl || '/videos/hero-jewelry-mobile.mp4';
+      return heroConfig.mobileVideoUrl || heroConfig.videoUrl || '';
     }
-    return heroConfig.videoUrl || '/videos/hero-jewelry.mp4';
+    return heroConfig.videoUrl || '';
   };
 
   const getInitialPoster = () => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     if (isMobile) {
-      return heroConfig.mobilePosterUrl || '/videos/hero-poster-mobile.jpg';
+      return heroConfig.mobilePosterUrl || '';
     }
-    return heroConfig.posterUrl || '/videos/hero-poster.jpg';
+    return heroConfig.posterUrl || '';
   };
 
   const [currentVideoSrc, setCurrentVideoSrc] = useState<string>(getInitialVideo);
@@ -33,23 +33,34 @@ export const HeroSection: React.FC = () => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
     const configTarget = isMobile
-      ? heroConfig.mobileVideoUrl || heroConfig.videoUrl
-      : heroConfig.videoUrl;
+      ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || ''
+      : heroConfig.videoUrl || '';
 
-    if (configTarget && configTarget !== currentVideoSrc) {
+    if (configTarget !== currentVideoSrc) {
       setCurrentVideoSrc(configTarget);
+      setVideoError(false);
       if (videoRef.current) {
-        videoRef.current.src = configTarget;
-        videoRef.current.load();
-        videoRef.current.play().catch(() => {});
+        if (configTarget) {
+          videoRef.current.src = configTarget;
+          videoRef.current.load();
+          videoRef.current.play().catch(() => {});
+        } else {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute('src');
+          videoRef.current.load();
+        }
       }
       return;
     }
 
-    // Also check IndexedDB for persistent custom video
+    // Only check IndexedDB if heroConfig has a video or if user didn't clear it
+    if (!configTarget && heroConfig.videoUrl === '') {
+      return;
+    }
+
     getMediaUrl('hero_video_desktop')
       .then((blobUrl) => {
-        if (blobUrl && isMounted && blobUrl !== currentVideoSrc) {
+        if (blobUrl && isMounted && blobUrl !== currentVideoSrc && heroConfig.videoUrl !== '') {
           setCurrentVideoSrc(blobUrl);
           if (videoRef.current) {
             videoRef.current.src = blobUrl;
@@ -68,7 +79,7 @@ export const HeroSection: React.FC = () => {
   // Ensure autoplay kicks off immediately on mount and on first user gesture across ALL browsers
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !currentVideoSrc) return;
 
     // Strict muted inline attributes for Chromium, Safari iOS, Edge, and Firefox
     video.defaultMuted = true;
@@ -80,7 +91,7 @@ export const HeroSection: React.FC = () => {
 
     const tryPlay = () => {
       const v = videoRef.current;
-      if (v) {
+      if (v && v.src) {
         v.defaultMuted = true;
         v.muted = true;
         const p = v.play();
@@ -116,7 +127,7 @@ export const HeroSection: React.FC = () => {
 
     const handleGesture = () => {
       const v = videoRef.current;
-      if (v && v.paused) {
+      if (v && v.paused && v.src) {
         tryPlay();
       }
     };
@@ -150,10 +161,10 @@ export const HeroSection: React.FC = () => {
       }}
     >
       {/* =========================================================
-          BACKGROUND LAYER: PURE VIDEO HERO (ZERO IMAGE FLASH, EXACT 16:9 ON MOBILE)
+          BACKGROUND LAYER: PURE VIDEO HERO (ZERO DEFAULT IMAGES)
           ========================================================= */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden bg-black">
-        {!videoError && (
+      <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0A0706]">
+        {currentVideoSrc && !videoError ? (
           <video
             ref={(el) => {
               videoRef.current = el;
@@ -168,7 +179,7 @@ export const HeroSection: React.FC = () => {
               }
             }}
             src={currentVideoSrc}
-            poster={currentPoster}
+            poster={currentPoster || undefined}
             autoPlay
             loop
             muted
@@ -193,20 +204,15 @@ export const HeroSection: React.FC = () => {
               e.currentTarget.play().catch(() => {});
             }}
             onError={() => {
-              if (currentVideoSrc !== '/videos/hero-jewelry.mp4') {
-                setCurrentVideoSrc('/videos/hero-jewelry.mp4');
-                setVideoError(false);
-              } else {
-                setVideoError(true);
-              }
+              setVideoError(true);
             }}
             className="absolute inset-0 w-full h-full object-cover object-center z-0"
           >
             <source src={currentVideoSrc} type="video/mp4" />
           </video>
-        )}
+        ) : null}
 
-        {/* Soft subtle contrast wash so video shines through with absolute clarity */}
+        {/* Soft subtle contrast wash */}
         <div
           className="absolute inset-0 pointer-events-none z-10"
           style={{
@@ -219,10 +225,9 @@ export const HeroSection: React.FC = () => {
           HERO TEXT OVERLAY (STOREFRONT WINDOW SIGNAGE)
           1. L.A Center Jewelry Inc (Calligraphy Script, Bold, Yellow/Gold, Single Line across all devices)
           2. Jewelry for a Lifetime (Sans-Serif, Thin / Non-Bold, Warm Golden Yellow)
-          Proportionately scaled to fit flawlessly inside 16:9 mobile viewport
           ========================================================= */}
       <div className="relative z-10 w-full max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center my-auto py-1 sm:py-4 md:py-8 select-none pointer-events-none">
-        {/* 1. Main store name: "𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬" strictly in a single line with balanced mobile sizing */}
+        {/* 1. Main store name: "𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬" */}
         <h1
           className="w-full whitespace-nowrap text-[13px] min-[360px]:text-[15px] min-[400px]:text-[17px] sm:text-[28px] md:text-[50px] lg:text-[64px] xl:text-[76px] leading-tight text-[#F3CA52] mb-0.5 sm:mb-2 md:mb-3 select-none font-normal flex items-center justify-center gap-x-1 min-[360px]:gap-x-1.5 sm:gap-x-4 md:gap-x-6"
           style={{
@@ -236,7 +241,7 @@ export const HeroSection: React.FC = () => {
           <span>𝓘𝓷𝓬</span>
         </h1>
 
-        {/* 2. Tagline directly underneath: Non-bold / thin clean sans-serif */}
+        {/* 2. Tagline directly underneath */}
         <h2
           className="font-sans font-light sm:font-normal text-[9px] min-[360px]:text-[10px] sm:text-base md:text-2xl lg:text-[28px] tracking-[0.08em] sm:tracking-widest text-[#F3CA52]"
           style={{
@@ -250,7 +255,6 @@ export const HeroSection: React.FC = () => {
 
       {/* =========================================================
           BOTTOM CORNER PROMOTIONAL TEXT (FREE PARKING & SPECIAL PRICES)
-          Neatly positioned with tight mobile padding so it never obstructs jewelry
           ========================================================= */}
       <div className="absolute bottom-1 right-2 sm:bottom-3 sm:right-4 md:right-8 z-20 flex flex-col items-end text-right select-none pointer-events-none">
         <p
