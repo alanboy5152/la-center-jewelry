@@ -39,11 +39,11 @@ async function startServer() {
 
       fs.writeFileSync(tempPath, buffer);
 
-      // Encode to universal 16:9 widescreen (H.264 baseline + faststart) for desktop & mobile
-      const ffmpegCmd = `ffmpeg -y -i "${tempPath}" -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,setsar=1" -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p -video_track_timescale 24000 -movflags +faststart -an "${targetDesktop}" && \
-ffmpeg -y -i "${tempPath}" -vf "scale=854:480:force_original_aspect_ratio=increase,crop=854:480,setsar=1" -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p -video_track_timescale 24000 -movflags +faststart -an "${targetMobile}" && \
-ffmpeg -y -i "${targetDesktop}" -vframes 1 "${posterDesktop}" && \
-ffmpeg -y -i "${targetMobile}" -vframes 1 "${posterMobile}" && \
+      // High-speed ultra-fast 16:9 widescreen encoding for instant response (sub-second)
+      const ffmpegCmd = `ffmpeg -y -i "${tempPath}" -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,setsar=1" -c:v libx264 -preset ultrafast -tune fastdecode -pix_fmt yuv420p -movflags +faststart -an "${targetDesktop}" && \
+cp -f "${targetDesktop}" "${targetMobile}" && \
+ffmpeg -y -ss 00:00:00.2 -i "${targetDesktop}" -vframes 1 "${posterDesktop}" && \
+cp -f "${posterDesktop}" "${posterMobile}" && \
 rm -f "${tempPath}"`;
 
       exec(ffmpegCmd, (error) => {

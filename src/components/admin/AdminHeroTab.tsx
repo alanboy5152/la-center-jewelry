@@ -99,20 +99,23 @@ export const AdminHeroTab: React.FC = () => {
 
     try {
       setIsUploading(true);
-      setUploadProgress(15);
+      setUploadProgress(20);
 
-      // Save to local IndexedDB for immediate playback
-      const localBlobUrl = await saveMediaBlob('hero_video_desktop', file);
-      setPreviewVideoSrc(localBlobUrl);
+      // Instant 0ms local preview playback
+      const immediateUrl = URL.createObjectURL(file);
+      setPreviewVideoSrc(immediateUrl);
 
-      // Upload to server API to generate 16:9 H.264 baseline hero-active.mp4
+      // Save to local IndexedDB in background
+      saveMediaBlob('hero_video_desktop', file).catch(() => {});
+
+      // Fast server upload with ultrafast 16:9 widescreen processing
       let serverVideoUrl = '';
       let serverMobileUrl = '';
       let serverPosterUrl = '';
       let serverMobilePosterUrl = '';
 
       try {
-        setUploadProgress(40);
+        setUploadProgress(50);
         const res = await fetch('/api/upload-hero-video', {
           method: 'POST',
           headers: { 'Content-Type': file.type || 'video/mp4' },
@@ -129,18 +132,9 @@ export const AdminHeroTab: React.FC = () => {
         console.warn('Server conversion bypassed:', uploadErr);
       }
 
-      setUploadProgress(85);
+      setUploadProgress(100);
 
-      // Also try cloud chunk sync if available
-      try {
-        await uploadHeroVideoToCloud(file, (percent) => {
-          setUploadProgress(Math.max(50, percent));
-        });
-      } catch (cloudErr) {
-        console.warn('Cloud video storage chunking skipped:', cloudErr);
-      }
-
-      const activeUrl = serverVideoUrl || localBlobUrl;
+      const activeUrl = serverVideoUrl || immediateUrl;
       const updatedForm: HeroConfig = {
         ...form,
         videoUrl: activeUrl,
@@ -154,7 +148,7 @@ export const AdminHeroTab: React.FC = () => {
       setForm(updatedForm);
       updateHeroConfig(updatedForm);
 
-      showToast(`Video "${file.name}" uploaded & configured successfully!`, 'success');
+      showToast(`Video "${file.name}" ready & configured!`, 'success');
     } catch (err) {
       console.error(err);
       setValidationError('Failed to process video file.');
