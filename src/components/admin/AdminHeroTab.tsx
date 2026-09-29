@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { HeroConfig } from '../../types';
-import { getMediaUrl } from '../../services/mediaStorage';
+import { getMediaUrl, saveMediaBlob, removeMediaBlob } from '../../services/mediaStorage';
 import {
   uploadHeroVideoToCloud,
   getHeroVideoFromCloudOrCache,
@@ -99,19 +99,54 @@ export const AdminHeroTab: React.FC = () => {
 
     try {
       setIsUploading(true);
-      setUploadProgress(10);
+      setUploadProgress(15);
 
-      // Upload directly to Firestore Cloud in chunks so ALL browsers & devices see it
-      const localBlobUrl = await uploadHeroVideoToCloud(file, (percent) => {
-        setUploadProgress(percent);
-      });
-
+      // Save to local IndexedDB for immediate playback
+      const localBlobUrl = await saveMediaBlob('hero_video_desktop', file);
       setPreviewVideoSrc(localBlobUrl);
 
+      // Upload to server API to generate 16:9 H.264 baseline hero-active.mp4
+      let serverVideoUrl = '';
+      let serverMobileUrl = '';
+      let serverPosterUrl = '';
+      let serverMobilePosterUrl = '';
+
+      try {
+        setUploadProgress(40);
+        const res = await fetch('/api/upload-hero-video', {
+          method: 'POST',
+          headers: { 'Content-Type': file.type || 'video/mp4' },
+          body: file,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          serverVideoUrl = data.videoUrl;
+          serverMobileUrl = data.mobileVideoUrl;
+          serverPosterUrl = data.posterUrl;
+          serverMobilePosterUrl = data.mobilePosterUrl;
+        }
+      } catch (uploadErr) {
+        console.warn('Server conversion bypassed:', uploadErr);
+      }
+
+      setUploadProgress(85);
+
+      // Also try cloud chunk sync if available
+      try {
+        await uploadHeroVideoToCloud(file, (percent) => {
+          setUploadProgress(Math.max(50, percent));
+        });
+      } catch (cloudErr) {
+        console.warn('Cloud video storage chunking skipped:', cloudErr);
+      }
+
+      const activeUrl = serverVideoUrl || localBlobUrl;
       const updatedForm: HeroConfig = {
         ...form,
-        videoUrl: 'cloud_hero_video',
-        mobileVideoUrl: 'cloud_hero_video',
+        videoUrl: activeUrl,
+        mobileVideoUrl: serverMobileUrl || activeUrl,
+        posterUrl: serverPosterUrl || '/videos/hero-active-poster.jpg',
+        mobilePosterUrl: serverMobilePosterUrl || '/videos/hero-active-poster-mobile.jpg',
         uploadedVideoFileName: file.name,
         uploadedVideoFileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
       };
@@ -119,7 +154,7 @@ export const AdminHeroTab: React.FC = () => {
       setForm(updatedForm);
       updateHeroConfig(updatedForm);
 
-      showToast(`Video "${file.name}" uploaded to Cloud successfully!`, 'success');
+      showToast(`Video "${file.name}" uploaded & configured successfully!`, 'success');
     } catch (err) {
       console.error(err);
       setValidationError('Failed to process video file.');

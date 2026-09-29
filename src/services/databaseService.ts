@@ -793,10 +793,10 @@ export const DEFAULT_SHOWCASE_VIDEOS = [
 
 // Initial Hero Config
 export const DEFAULT_HERO_CONFIG: HeroConfig = {
-  videoUrl: '',
-  mobileVideoUrl: '',
-  posterUrl: '',
-  mobilePosterUrl: '',
+  videoUrl: '/videos/hero-active.mp4',
+  mobileVideoUrl: '/videos/hero-active-mobile.mp4',
+  posterUrl: '/videos/hero-active-poster.jpg',
+  mobilePosterUrl: '/videos/hero-active-poster-mobile.jpg',
   smallText: 'L.A CENTER JEWELRY INC',
   headline: '𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬',
   tagline: 'Jewelry for a Lifetime',
@@ -1803,14 +1803,14 @@ class DatabaseService {
       const parsed = JSON.parse(data);
 
       let needsSave = false;
-      // Permanently remove legacy default videos and posters so ONLY admin-uploaded videos show
+      // Permanently remove legacy default videos and posters so ONLY active or admin-uploaded videos show
       if (
         parsed.videoUrl === '/videos/hero-jewelry.mp4' ||
         parsed.videoUrl === '/videos/hero-jewelry-mobile.mp4' ||
         parsed.videoUrl?.includes('commondatastorage.googleapis.com') ||
         parsed.videoUrl?.includes('TearsOfSteel')
       ) {
-        parsed.videoUrl = '';
+        parsed.videoUrl = '/videos/hero-active.mp4';
         needsSave = true;
       }
       if (
@@ -1819,7 +1819,7 @@ class DatabaseService {
         parsed.mobileVideoUrl?.includes('commondatastorage.googleapis.com') ||
         parsed.mobileVideoUrl?.includes('ForBiggerBlazes')
       ) {
-        parsed.mobileVideoUrl = '';
+        parsed.mobileVideoUrl = '/videos/hero-active-mobile.mp4';
         needsSave = true;
       }
       if (
@@ -1827,7 +1827,7 @@ class DatabaseService {
         parsed.posterUrl === '/videos/hero-poster-mobile.jpg' ||
         parsed.posterUrl?.includes('photo-1515562141207-7a88fb7ce338')
       ) {
-        parsed.posterUrl = '';
+        parsed.posterUrl = '/videos/hero-active-poster.jpg';
         needsSave = true;
       }
       if (
@@ -1835,15 +1835,15 @@ class DatabaseService {
         parsed.mobilePosterUrl === '/videos/hero-poster.jpg' ||
         parsed.mobilePosterUrl?.includes('photo-1515562141207-7a88fb7ce338')
       ) {
-        parsed.mobilePosterUrl = '';
+        parsed.mobilePosterUrl = '/videos/hero-active-poster-mobile.jpg';
         needsSave = true;
       }
 
       const merged: HeroConfig = {
         ...DEFAULT_HERO_CONFIG,
         ...parsed,
-        posterUrl: parsed.posterUrl || '/videos/hero-poster.jpg',
-        mobilePosterUrl: parsed.mobilePosterUrl || '/videos/hero-poster-mobile.jpg',
+        posterUrl: parsed.posterUrl || DEFAULT_HERO_CONFIG.posterUrl,
+        mobilePosterUrl: parsed.mobilePosterUrl || DEFAULT_HERO_CONFIG.mobilePosterUrl,
         activeMode: 'video',
       };
 

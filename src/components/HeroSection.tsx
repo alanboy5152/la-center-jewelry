@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { getMediaUrl } from '../services/mediaStorage';
 import {
@@ -8,53 +8,126 @@ import {
 
 export const HeroSection: React.FC = () => {
   const { heroConfig } = useApp();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoError, setVideoError] = useState(false);
-  const [currentVideoSrc, setCurrentVideoSrc] = useState<string>('');
 
-  // Synchronously determine initial video or resolve from cloud
+  // Synchronously compute initial video from frame 1 so the <video> tag is NEVER delayed
+  const getInitialVideo = useCallback(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    let target = isMobile
+      ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || '/videos/hero-active-mobile.mp4'
+      : heroConfig.videoUrl || '/videos/hero-active.mp4';
+
+    if (target.includes('hero-jewelry')) {
+      target = isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4';
+    }
+    return target;
+  }, [heroConfig.videoUrl, heroConfig.mobileVideoUrl]);
+
+  const [currentVideoSrc, setCurrentVideoSrc] = useState<string>(getInitialVideo);
+  const isMobileView = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+  const posterSrc = isMobileView
+    ? heroConfig.mobilePosterUrl || '/videos/hero-active-poster-mobile.jpg'
+    : heroConfig.posterUrl || '/videos/hero-active-poster.jpg';
+
+  // Reliable Autoplay Trigger across mobile Safari, Android Chrome, and Desktop
+  const triggerAutoplay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Enforce strict muted inline attributes for mobile autoplay policy
+    video.defaultMuted = true;
+    video.muted = true;
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', 'true');
+    video.setAttribute('x5-playsinline', 'true');
+
+    if (video.paused) {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // In case of aggressive low-power mode, try again in next microtask
+          requestAnimationFrame(() => {
+            if (videoRef.current && videoRef.current.paused) {
+              videoRef.current.muted = true;
+              videoRef.current.play().catch(() => {});
+            }
+          });
+        });
+      }
+    }
+  }, []);
+
+  // Purge any legacy browser caches of old default video
+  useEffect(() => {
+    try {
+      if ('caches' in window) {
+        caches.keys().then((names) => {
+          names.forEach((name) => {
+            caches.open(name).then((cache) => {
+              cache.delete('/videos/hero-jewelry.mp4');
+              cache.delete('/videos/hero-jewelry-mobile.mp4');
+              cache.delete('/videos/hero-poster.jpg');
+              cache.delete('/videos/hero-poster-mobile.jpg');
+            });
+          });
+        });
+      }
+    } catch {}
+  }, []);
+
+  // Synchronously update video source if heroConfig changes
   useEffect(() => {
     let isMounted = true;
 
     const resolveVideo = async () => {
-      const target = heroConfig.videoUrl || '';
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+      let target = isMobile
+        ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || '/videos/hero-active-mobile.mp4'
+        : heroConfig.videoUrl || '/videos/hero-active.mp4';
 
-      // Case 1: Video explicitly cleared / empty
+      if (target.includes('hero-jewelry')) {
+        target = isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4';
+      }
+
       if (!target) {
         if (isMounted) setCurrentVideoSrc('');
         return;
       }
 
-      // Case 2: Cloud-hosted video in Firestore
       if (target === 'cloud_hero_video') {
-        // Check local IndexedDB cache first for instant playback
         const cachedBlob = await getMediaUrl('hero_video_desktop');
         if (cachedBlob && isMounted) {
           setCurrentVideoSrc(cachedBlob);
           return;
         }
 
-        // Fetch from Firestore cloud chunks
         const cloudUrl = await getHeroVideoFromCloudOrCache();
         if (cloudUrl && isMounted) {
           setCurrentVideoSrc(cloudUrl);
+          return;
+        }
+
+        if (isMounted) {
+          setCurrentVideoSrc(isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4');
         }
         return;
       }
 
-      // Case 3: Direct URL (HTTP / HTTPS / local Blob URL)
-      if (isMounted) {
+      if (isMounted && target !== currentVideoSrc) {
         setCurrentVideoSrc(target);
       }
     };
 
     resolveVideo();
 
-    // Subscribe to real-time cloud video updates across all browsers & tabs
+    // Subscribe to cloud updates in real-time
     const unsubscribe = subscribeToCloudHeroVideo((cloudUrl) => {
       if (!isMounted) return;
-      if (heroConfig.videoUrl === 'cloud_hero_video') {
-        setCurrentVideoSrc(cloudUrl || '');
+      if (heroConfig.videoUrl === 'cloud_hero_video' && cloudUrl) {
+        setCurrentVideoSrc(cloudUrl);
         setVideoError(false);
       }
     });
@@ -63,95 +136,89 @@ export const HeroSection: React.FC = () => {
       isMounted = false;
       unsubscribe();
     };
-  }, [heroConfig.videoUrl]);
+  }, [heroConfig.videoUrl, heroConfig.mobileVideoUrl]);
 
-  // Handle video element play / pause when source changes
+  // Autoplay activation lifecycle on mount and on ANY touch/scroll anywhere on the page
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    triggerAutoplay();
 
-    if (currentVideoSrc) {
-      video.src = currentVideoSrc;
-      video.defaultMuted = true;
-      video.muted = true;
-      video.setAttribute('muted', '');
-      video.setAttribute('playsinline', '');
-      video.setAttribute('webkit-playsinline', '');
-      video.setAttribute('x5-playsinline', '');
-      video.load();
+    // Staggered retries to guarantee autoplay even on slow cellular networks or older iOS Safari
+    const t1 = setTimeout(triggerAutoplay, 50);
+    const t2 = setTimeout(triggerAutoplay, 200);
+    const t3 = setTimeout(triggerAutoplay, 500);
+    const t4 = setTimeout(triggerAutoplay, 1000);
+    const t5 = setTimeout(triggerAutoplay, 2000);
 
-      const tryPlay = () => {
-        const v = videoRef.current;
-        if (v && v.src) {
-          v.defaultMuted = true;
-          v.muted = true;
-          v.play().catch(() => {});
-        }
-      };
+    // Any micro-interaction (scroll, tap anywhere, pointer, touch) starts video instantly
+    const globalTriggers = [
+      'touchstart',
+      'touchmove',
+      'touchend',
+      'pointerdown',
+      'pointerup',
+      'mousedown',
+      'scroll',
+      'wheel',
+      'keydown',
+      'visibilitychange',
+    ];
 
-      tryPlay();
-      const t1 = setTimeout(tryPlay, 150);
-      const t2 = setTimeout(tryPlay, 500);
-      const t3 = setTimeout(tryPlay, 1200);
+    const handleAnyUserActivity = () => {
+      const video = videoRef.current;
+      if (video && video.paused) {
+        video.muted = true;
+        video.play().catch(() => {});
+      }
+    };
 
-      const touchTriggers = [
-        'touchstart',
-        'touchend',
-        'pointerdown',
-        'mousedown',
-        'click',
-        'scroll',
-        'wheel',
-        'keydown',
-      ];
+    globalTriggers.forEach((evt) => {
+      window.addEventListener(evt, handleAnyUserActivity, { passive: true, capture: true });
+    });
 
-      const handleGesture = () => {
-        if (videoRef.current && videoRef.current.paused) {
-          tryPlay();
-        }
-      };
-
-      touchTriggers.forEach((evt) => {
-        window.addEventListener(evt, handleGesture, { passive: true, capture: true });
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
+      globalTriggers.forEach((evt) => {
+        window.removeEventListener(evt, handleAnyUserActivity, { capture: true });
       });
-
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        touchTriggers.forEach((evt) => {
-          window.removeEventListener(evt, handleGesture, { capture: true });
-        });
-      };
-    } else {
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-    }
-  }, [currentVideoSrc]);
+    };
+  }, [triggerAutoplay, currentVideoSrc]);
 
   if (!heroConfig.isEnabled) return null;
 
   return (
     <section
-      className="relative w-full aspect-video sm:aspect-video md:aspect-auto md:h-[72vh] md:min-h-[480px] md:max-h-[760px] overflow-hidden flex flex-col items-center justify-center cursor-pointer select-none"
+      className="relative w-full aspect-video sm:aspect-video md:aspect-auto md:h-[72vh] md:min-h-[480px] md:max-h-[760px] overflow-hidden flex flex-col items-center justify-center select-none"
       id="hero-storefront-section"
-      onClick={() => {
-        if (videoRef.current && videoRef.current.paused) {
-          videoRef.current.muted = true;
-          videoRef.current.play().catch(() => {});
-        }
-      }}
+      onClick={triggerAutoplay}
     >
       {/* =========================================================
-          BACKGROUND LAYER: PURE VIDEO HERO (ZERO DEFAULT IMAGES/VIDEOS)
-          If no video uploaded, displays deep obsidian jewel atmosphere
+          BACKGROUND LAYER: PURE VIDEO HERO (AUTO-PLAYS INSTANTLY)
+          Synchronously mounted, muted, playsinline, loop, autoPlay
           ========================================================= */}
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0A0706]">
         {currentVideoSrc && !videoError ? (
           <video
-            ref={videoRef}
+            ref={(el) => {
+              videoRef.current = el;
+              if (el) {
+                el.defaultMuted = true;
+                el.muted = true;
+                el.setAttribute('muted', '');
+                el.setAttribute('playsinline', '');
+                el.setAttribute('webkit-playsinline', 'true');
+                el.setAttribute('x5-playsinline', 'true');
+                el.setAttribute('x5-video-player-type', 'h5-page');
+                if (el.paused) {
+                  el.play().catch(() => {});
+                }
+              }
+            }}
             src={currentVideoSrc}
+            poster={posterSrc}
             autoPlay
             loop
             muted
@@ -163,19 +230,31 @@ export const HeroSection: React.FC = () => {
               e.currentTarget.muted = true;
               e.currentTarget.play().catch(() => {});
             }}
+            onLoadedData={(e) => {
+              e.currentTarget.muted = true;
+              e.currentTarget.play().catch(() => {});
+            }}
             onCanPlay={(e) => {
               e.currentTarget.muted = true;
               e.currentTarget.play().catch(() => {});
             }}
-            onError={() => {
-              setVideoError(true);
+            onCanPlayThrough={(e) => {
+              e.currentTarget.muted = true;
+              e.currentTarget.play().catch(() => {});
             }}
-            className="absolute inset-0 w-full h-full object-cover object-center z-0"
+            onError={() => {
+              if (currentVideoSrc !== '/videos/hero-active.mp4') {
+                setCurrentVideoSrc('/videos/hero-active.mp4');
+                setVideoError(false);
+              } else {
+                setVideoError(true);
+              }
+            }}
+            className="absolute inset-0 w-full h-full object-cover object-center z-0 pointer-events-none"
           >
             <source src={currentVideoSrc} type="video/mp4" />
           </video>
         ) : (
-          /* Subtle ambient luxury backdrop when waiting for admin upload */
           <div
             className="absolute inset-0 z-0 opacity-40 pointer-events-none"
             style={{
