@@ -46,7 +46,21 @@ export const AdminHeroTab: React.FC = () => {
     let isMounted = true;
 
     const resolvePreview = async () => {
+      // If a local custom video was uploaded
+      if (form.videoUrl === 'local_uploaded_video' || form.uploadedVideoFileName) {
+        const cached = await getMediaUrl('hero_video_desktop');
+        if (cached && isMounted) {
+          setPreviewVideoSrc(cached);
+          return;
+        }
+      }
+
       if (!form.videoUrl) {
+        const cached = await getMediaUrl('hero_video_desktop');
+        if (cached && isMounted) {
+          setPreviewVideoSrc(cached);
+          return;
+        }
         if (isMounted) setPreviewVideoSrc('');
         return;
       }
@@ -60,6 +74,7 @@ export const AdminHeroTab: React.FC = () => {
         const cloudUrl = await getHeroVideoFromCloudOrCache();
         if (cloudUrl && isMounted) {
           setPreviewVideoSrc(cloudUrl);
+          return;
         }
         return;
       }

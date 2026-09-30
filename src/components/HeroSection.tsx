@@ -97,17 +97,19 @@ export const HeroSection: React.FC = () => {
         return;
       }
 
-      if (target === 'cloud_hero_video') {
+      if (target === 'local_uploaded_video' || target === 'cloud_hero_video') {
         const cachedBlob = await getMediaUrl('hero_video_desktop');
         if (cachedBlob && isMounted) {
           setCurrentVideoSrc(cachedBlob);
           return;
         }
 
-        const cloudUrl = await getHeroVideoFromCloudOrCache();
-        if (cloudUrl && isMounted) {
-          setCurrentVideoSrc(cloudUrl);
-          return;
+        if (target === 'cloud_hero_video') {
+          const cloudUrl = await getHeroVideoFromCloudOrCache();
+          if (cloudUrl && isMounted) {
+            setCurrentVideoSrc(cloudUrl);
+            return;
+          }
         }
 
         if (isMounted) {

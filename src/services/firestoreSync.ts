@@ -503,10 +503,10 @@ export async function saveHeroConfigToFirestore(hero: HeroConfig): Promise<void>
     const docRef = doc(firestoreDb, SETTINGS_COLLECTION, 'hero');
     const sanitized = { ...hero };
     if (sanitized.videoUrl?.startsWith('blob:')) {
-      delete (sanitized as Record<string, unknown>).videoUrl;
+      sanitized.videoUrl = 'local_uploaded_video';
     }
     if (sanitized.mobileVideoUrl?.startsWith('blob:')) {
-      delete (sanitized as Record<string, unknown>).mobileVideoUrl;
+      sanitized.mobileVideoUrl = 'local_uploaded_video';
     }
     await setDoc(docRef, sanitizeForFirestore(sanitized), { merge: true });
   } catch (error) {

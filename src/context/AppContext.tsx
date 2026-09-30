@@ -505,14 +505,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const unsubHero = subscribeToHeroConfig((cloudHero) => {
       if (cloudHero) {
-        setHeroConfig((prev) => ({
-          ...prev,
-          ...cloudHero,
-          videoUrl: (cloudHero.videoUrl && !cloudHero.videoUrl.includes('commondatastorage.googleapis.com'))
-            ? cloudHero.videoUrl
-            : prev.videoUrl,
-        }));
-        db.saveHeroConfig(cloudHero);
+        setHeroConfig((prev) => {
+          let mergedVideo = prev.videoUrl;
+          if (cloudHero.videoUrl && !cloudHero.videoUrl.includes('commondatastorage.googleapis.com')) {
+            if (cloudHero.videoUrl === 'local_uploaded_video') {
+              mergedVideo = prev.videoUrl || 'local_uploaded_video';
+            } else {
+              mergedVideo = cloudHero.videoUrl;
+            }
+          }
+          const merged = {
+            ...prev,
+            ...cloudHero,
+            videoUrl: mergedVideo,
+          };
+          db.saveHeroConfig(merged);
+          return merged;
+        });
       }
     });
 
