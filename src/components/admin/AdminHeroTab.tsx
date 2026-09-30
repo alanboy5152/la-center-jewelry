@@ -114,48 +114,24 @@ export const AdminHeroTab: React.FC = () => {
 
     try {
       setIsUploading(true);
-      setUploadProgress(20);
+      setUploadProgress(15);
 
-      // Instant 0ms local preview playback
+      // 1. Instant 0ms local preview playback
       const immediateUrl = URL.createObjectURL(file);
       setPreviewVideoSrc(immediateUrl);
 
-      // Save to local IndexedDB in background
-      saveMediaBlob('hero_video_desktop', file).catch(() => {});
+      // 2. Upload to Cloud Firestore in parallel chunks so ALL browsers & devices worldwide receive it
+      await uploadHeroVideoToCloud(file, (percent) => {
+        setUploadProgress(percent);
+      });
 
-      // Fast server upload with ultrafast 16:9 widescreen processing
-      let serverVideoUrl = '';
-      let serverMobileUrl = '';
-      let serverPosterUrl = '';
-      let serverMobilePosterUrl = '';
-
-      try {
-        setUploadProgress(50);
-        const res = await fetch('/api/upload-hero-video', {
-          method: 'POST',
-          headers: { 'Content-Type': file.type || 'video/mp4' },
-          body: file,
-        });
-        if (res.ok) {
-          const data = await res.json();
-          serverVideoUrl = data.videoUrl;
-          serverMobileUrl = data.mobileVideoUrl;
-          serverPosterUrl = data.posterUrl;
-          serverMobilePosterUrl = data.mobilePosterUrl;
-        }
-      } catch (uploadErr) {
-        console.warn('Server conversion bypassed:', uploadErr);
-      }
-
-      setUploadProgress(100);
-
-      const activeUrl = serverVideoUrl || immediateUrl;
+      // 3. Set heroConfig videoUrl to 'cloud_hero_video' and save to Firestore
       const updatedForm: HeroConfig = {
         ...form,
-        videoUrl: activeUrl,
-        mobileVideoUrl: serverMobileUrl || activeUrl,
-        posterUrl: serverPosterUrl || '/videos/hero-active-poster.jpg',
-        mobilePosterUrl: serverMobilePosterUrl || '/videos/hero-active-poster-mobile.jpg',
+        videoUrl: 'cloud_hero_video',
+        mobileVideoUrl: 'cloud_hero_video',
+        posterUrl: '/videos/hero-active-poster.jpg',
+        mobilePosterUrl: '/videos/hero-active-poster-mobile.jpg',
         uploadedVideoFileName: file.name,
         uploadedVideoFileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
       };
@@ -163,7 +139,7 @@ export const AdminHeroTab: React.FC = () => {
       setForm(updatedForm);
       updateHeroConfig(updatedForm);
 
-      showToast(`Video "${file.name}" ready & configured!`, 'success');
+      showToast(`Video "${file.name}" uploaded to Cloud! Live on all browsers & devices.`, 'success');
     } catch (err) {
       console.error(err);
       setValidationError('Failed to process video file.');

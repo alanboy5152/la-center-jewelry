@@ -2,7 +2,7 @@ import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { firestoreDb } from './firebase';
 import { saveMediaBlob, getMediaUrl, removeMediaBlob } from './mediaStorage';
 
-const CHUNK_SIZE = 650 * 1024; // 650KB per chunk (fits comfortably under Firestore 1MB doc limit)
+const CHUNK_SIZE = 850 * 1024; // 850KB per chunk (fits comfortably under Firestore 1MB doc limit)
 const SETTINGS_COLLECTION = 'settings';
 const VIDEO_META_DOC = 'hero_video_meta';
 
@@ -45,19 +45,23 @@ export function base64ToBlob(base64: string, mimeType: string): Blob {
 
 /**
  * Upload an admin-selected video file to Firestore in cloud chunks
- * Also saves to local IndexedDB for immediate local playback
+ * Uses parallel Promise.all for ultra-fast upload speed
  */
 export async function uploadHeroVideoToCloud(
   file: File,
   onProgress?: (percent: number) => void
 ): Promise<string> {
-  // 1. Save to local IndexedDB for instantaneous local play
+  // 1. Save to local IndexedDB for instantaneous local play on uploader's browser
   const localBlobUrl = await saveMediaBlob('hero_video_desktop', file);
   localStorage.setItem('lac_hero_uploaded_filename', file.name);
+
+  if (onProgress) onProgress(20);
 
   // 2. Read file as Base64
   const base64Data = await blobToBase64(file);
   const totalChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
+
+  if (onProgress) onProgress(40);
 
   // 3. Write metadata document to Firestore
   const meta: CloudVideoMeta = {
@@ -70,27 +74,37 @@ export async function uploadHeroVideoToCloud(
 
   await setDoc(doc(firestoreDb, SETTINGS_COLLECTION, VIDEO_META_DOC), meta);
 
-  // 4. Write chunks to Firestore
+  if (onProgress) onProgress(50);
+
+  // 4. Write all chunks in parallel using Promise.all
+  let completed = 0;
+  const chunkPromises = [];
   for (let i = 0; i < totalChunks; i++) {
     const chunkData = base64Data.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-    await setDoc(doc(firestoreDb, SETTINGS_COLLECTION, `hero_video_chunk_${i}`), {
+    const p = setDoc(doc(firestoreDb, SETTINGS_COLLECTION, `hero_video_chunk_${i}`), {
       index: i,
       data: chunkData,
+    }).then(() => {
+      completed++;
+      if (onProgress) {
+        onProgress(50 + Math.round((completed / totalChunks) * 45));
+      }
     });
-    if (onProgress) {
-      onProgress(Math.round(((i + 1) / totalChunks) * 100));
-    }
+    chunkPromises.push(p);
   }
 
-  // 5. Store current meta timestamp in localStorage to know this browser is synced
+  await Promise.all(chunkPromises);
+
+  // 5. Store current meta timestamp in localStorage
   localStorage.setItem('lac_cached_hero_video_time', meta.updatedAt);
+  if (onProgress) onProgress(100);
 
   return localBlobUrl;
 }
 
 /**
  * Retrieves the cloud hero video from Firestore or local cache
- * Works on ANY browser (Browser B, Vercel, mobile, Safari, Edge, etc.)
+ * Works on ANY browser (Browser 2, mobile, Safari, Edge, Chrome, etc.)
  */
 export async function getHeroVideoFromCloudOrCache(): Promise<string | null> {
   try {
@@ -114,16 +128,27 @@ export async function getHeroVideoFromCloudOrCache(): Promise<string | null> {
       }
     }
 
-    // 3. Download chunks from Firestore and assemble
-    let assembledBase64 = '';
+    // 3. Download all chunks in parallel using Promise.all for maximum speed
+    const chunkPromises = [];
     for (let i = 0; i < meta.totalChunks; i++) {
-      const chunkSnap = await getDoc(doc(firestoreDb, SETTINGS_COLLECTION, `hero_video_chunk_${i}`));
-      if (!chunkSnap.exists()) {
+      chunkPromises.push(
+        getDoc(doc(firestoreDb, SETTINGS_COLLECTION, `hero_video_chunk_${i}`))
+      );
+    }
+
+    const chunkSnaps = await Promise.all(chunkPromises);
+    const chunks: string[] = new Array(meta.totalChunks);
+
+    for (let i = 0; i < chunkSnaps.length; i++) {
+      const snap = chunkSnaps[i];
+      if (!snap.exists()) {
         console.warn(`Missing hero video chunk ${i}`);
         return null;
       }
-      assembledBase64 += chunkSnap.data().data;
+      chunks[i] = snap.data().data;
     }
+
+    const assembledBase64 = chunks.join('');
 
     // 4. Convert to Blob
     const videoBlob = base64ToBlob(assembledBase64, meta.mimeType || 'video/mp4');
@@ -178,9 +203,13 @@ export async function removeHeroVideoFromCloud(): Promise<void> {
       const meta = metaSnap.data() as CloudVideoMeta;
       const total = meta.totalChunks || 0;
       await deleteDoc(doc(firestoreDb, SETTINGS_COLLECTION, VIDEO_META_DOC));
+      const deletePromises = [];
       for (let i = 0; i < total; i++) {
-        await deleteDoc(doc(firestoreDb, SETTINGS_COLLECTION, `hero_video_chunk_${i}`));
+        deletePromises.push(
+          deleteDoc(doc(firestoreDb, SETTINGS_COLLECTION, `hero_video_chunk_${i}`))
+        );
       }
+      await Promise.all(deletePromises);
     }
     await removeMediaBlob('hero_video_desktop');
     localStorage.removeItem('lac_cached_hero_video_time');

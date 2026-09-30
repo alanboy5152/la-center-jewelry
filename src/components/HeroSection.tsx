@@ -104,12 +104,10 @@ export const HeroSection: React.FC = () => {
           return;
         }
 
-        if (target === 'cloud_hero_video') {
-          const cloudUrl = await getHeroVideoFromCloudOrCache();
-          if (cloudUrl && isMounted) {
-            setCurrentVideoSrc(cloudUrl);
-            return;
-          }
+        const cloudUrl = await getHeroVideoFromCloudOrCache();
+        if (cloudUrl && isMounted) {
+          setCurrentVideoSrc(cloudUrl);
+          return;
         }
 
         if (isMounted) {
@@ -125,10 +123,10 @@ export const HeroSection: React.FC = () => {
 
     resolveVideo();
 
-    // Subscribe to cloud updates in real-time
+    // Subscribe to cloud updates in real-time across all browsers
     const unsubscribe = subscribeToCloudHeroVideo((cloudUrl) => {
       if (!isMounted) return;
-      if (heroConfig.videoUrl === 'cloud_hero_video' && cloudUrl) {
+      if (cloudUrl) {
         setCurrentVideoSrc(cloudUrl);
         setVideoError(false);
       }
