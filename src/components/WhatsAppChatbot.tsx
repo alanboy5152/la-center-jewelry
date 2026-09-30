@@ -21,7 +21,6 @@ export const WhatsAppChatbot: React.FC = () => {
   const { siteSettings } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -77,16 +76,6 @@ export const WhatsAppChatbot: React.FC = () => {
     },
   ];
 
-  // Auto show subtle tooltip on first visit
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isOpen && !hasOpenedOnce) {
-        setShowTooltip(true);
-      }
-    }, 2800);
-    return () => clearTimeout(timer);
-  }, [isOpen, hasOpenedOnce]);
-
   // Scroll to bottom of chat
   useEffect(() => {
     if (isOpen) {
@@ -97,7 +86,6 @@ export const WhatsAppChatbot: React.FC = () => {
   const handleOpenWidget = () => {
     setIsOpen(true);
     setHasOpenedOnce(true);
-    setShowTooltip(false);
   };
 
   const openWhatsAppDirect = (text: string) => {
@@ -159,31 +147,7 @@ export const WhatsAppChatbot: React.FC = () => {
 
   return (
     <div className="fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-40 font-sans print:hidden select-none">
-      {/* 1. Mobile-friendly Concise Tooltip */}
-      {showTooltip && !isOpen && (
-        <div
-          onClick={handleOpenWidget}
-          className="absolute bottom-15 right-0 mb-1 bg-[#1A1412] border border-[#D4AF37]/50 text-white px-3.5 py-2 shadow-xl rounded-full flex items-center gap-2 cursor-pointer hover:bg-[#251B17] transition-all animate-in fade-in slide-in-from-bottom-2 duration-200"
-        >
-          <span className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse"></span>
-          <span className="text-xs font-semibold text-white whitespace-nowrap">
-            Chat on WhatsApp
-          </span>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowTooltip(false);
-            }}
-            className="text-neutral-400 hover:text-white p-0.5 ml-1"
-            aria-label="Close tooltip"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* 2. Floating Circular WhatsApp Trigger Button */}
+      {/* Floating Circular WhatsApp Trigger Button */}
       {!isOpen && (
         <button
           type="button"
