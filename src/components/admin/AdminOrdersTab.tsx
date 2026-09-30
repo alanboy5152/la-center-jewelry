@@ -15,6 +15,7 @@ import {
   Sparkles,
   ExternalLink,
   Phone,
+  ArrowLeft,
 } from 'lucide-react';
 import { Order, OrderStatus } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -262,27 +263,41 @@ export const AdminOrdersTab: React.FC = () => {
 
       {/* Order Details Modal */}
       {activeOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs overflow-y-auto">
-          <div className="relative bg-[#1A1A1A] border border-[#333] text-white w-full max-w-2xl my-8 p-6 sm:p-8 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-[#2D2D2D] mb-6">
-              <div>
-                <span className="text-[10px] text-[#D4AF37] uppercase tracking-widest font-semibold block">
-                  Order Dossier
-                </span>
-                <h3 className="font-serif text-xl font-normal text-white">
-                  {activeOrder.id} • {activeOrder.customer.name || `${activeOrder.customer.firstName} ${activeOrder.customer.lastName}`}
-                </h3>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex justify-center p-2 sm:p-4 md:p-6">
+          <div className="relative bg-[#1A1A1A] border border-[#333] text-white w-full max-w-2xl my-auto shadow-2xl rounded-sm flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Sticky Header with Back Button */}
+            <div className="sticky top-0 z-20 bg-[#1A1A1A] border-b border-[#2D2D2D] px-4 sm:px-6 py-3.5 flex items-center justify-between shrink-0 shadow-md">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveOrder(null)}
+                  className="px-3 py-1.5 bg-[#251D18] hover:bg-[#382B23] border border-[#D4AF37]/50 text-[#D4AF37] text-xs font-semibold rounded flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                  title="Back to orders list"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </button>
+                <div>
+                  <span className="text-[10px] text-[#D4AF37] uppercase tracking-widest font-semibold block">
+                    Order Dossier
+                  </span>
+                  <h3 className="font-serif text-base sm:text-lg font-normal text-white truncate max-w-[200px] sm:max-w-md">
+                    {activeOrder.id} • {activeOrder.customer.name || `${activeOrder.customer.firstName} ${activeOrder.customer.lastName}`}
+                  </h3>
+                </div>
               </div>
+
               <button
                 type="button"
                 onClick={() => setActiveOrder(null)}
-                className="text-neutral-400 hover:text-white p-1"
+                className="text-neutral-400 hover:text-white p-1.5 rounded-full hover:bg-neutral-800 transition-colors cursor-pointer"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-6 text-xs">
+            <div className="p-4 sm:p-6 space-y-6 text-xs overflow-y-auto overscroll-contain flex-1">
               {/* Status Updater */}
               <div className="p-4 bg-[#141414] border border-[#2D2D2D] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -480,20 +495,32 @@ export const AdminOrdersTab: React.FC = () => {
                 </div>
 
                 <div className="pt-1 flex flex-wrap items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="px-3 py-1.5 bg-[#2A1E18] hover:bg-[#3E2B22] border border-[#523B2E] text-neutral-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>Print Order Invoice</span>
-                  </button>
-
                   <div className="text-[11px] text-neutral-400 font-mono">
                     Customer: {activeOrder.customer.email} {activeOrder.customer.phone ? `• ${activeOrder.customer.phone}` : ''}
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Sticky Bottom Navigation Bar */}
+            <div className="sticky bottom-0 z-20 bg-[#141414] border-t border-[#2D2D2D] px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 shadow-lg">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-3.5 py-2 bg-[#2A1E18] hover:bg-[#3E2B22] border border-[#523B2E] text-neutral-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors rounded"
+              >
+                <Printer className="w-4 h-4 text-[#D4AF37]" />
+                <span>Print Invoice</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveOrder(null)}
+                className="px-5 py-2 bg-[#D4AF37] hover:bg-[#b8952b] text-black text-xs font-bold uppercase tracking-wider rounded flex items-center gap-2 cursor-pointer shadow-md transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Orders List</span>
+              </button>
             </div>
           </div>
         </div>
@@ -501,124 +528,141 @@ export const AdminOrdersTab: React.FC = () => {
 
       {/* Customer Message & Invoice Modal */}
       {messageOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
-          <div className="relative bg-[#1A1513] border border-[#D4AF37]/50 text-white w-full max-w-xl my-8 p-6 sm:p-7 shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-[#2D211B] mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#2A1F1A] border border-[#D4AF37] flex items-center justify-center text-[#D4AF37]">
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-serif text-lg font-medium text-white">
-                    Send Customer Message &amp; Invoice
-                  </h3>
-                  <span className="text-[11px] text-[#D4AF37] font-mono">
-                    Order #{messageOrder.id} • {messageOrder.customer.name || `${messageOrder.customer.firstName} ${messageOrder.customer.lastName}`}
-                  </span>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex justify-center p-2 sm:p-4 md:p-6">
+          <div className="relative bg-[#1A1513] border border-[#D4AF37]/50 text-white w-full max-w-xl my-auto shadow-2xl rounded-sm flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Sticky Header with Back Button */}
+            <div className="sticky top-0 z-20 bg-[#1A1513] border-b border-[#2D211B] px-4 sm:px-6 py-3.5 flex items-center justify-between shrink-0 shadow-md">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMessageOrder(null)}
+                  className="px-3 py-1.5 bg-[#251D18] hover:bg-[#382B23] border border-[#D4AF37]/50 text-[#D4AF37] text-xs font-semibold rounded flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                  title="Back to order details"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </button>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#2A1F1A] border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shrink-0">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-base sm:text-lg font-medium text-white truncate max-w-[200px] sm:max-w-xs">
+                      Send Customer Message
+                    </h3>
+                    <span className="text-[10px] text-[#D4AF37] font-mono block">
+                      Order #{messageOrder.id}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setMessageOrder(null)}
-                className="p-1.5 text-neutral-400 hover:text-white rounded-xs hover:bg-[#2A1F1A] cursor-pointer"
+                className="text-neutral-400 hover:text-white p-1.5 rounded-full hover:bg-[#2A1F1A] transition-colors cursor-pointer"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Template Selector */}
-            <div className="mb-4">
-              <label className="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold block mb-1.5">
-                Notice Type
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOpenMessage(messageOrder, 'thankyou')}
-                  className={`py-2 px-3 text-xs font-semibold text-center border transition-colors cursor-pointer ${
-                    messageType === 'thankyou'
-                      ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-bold'
-                      : 'bg-[#150F0D] border-[#3E2D24] text-neutral-300 hover:text-white hover:bg-[#201713]'
-                  }`}
-                >
-                  1. Thank You Notice
-                </button>
+            {/* Scrollable Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-4 text-xs">
+              {/* Template Selector */}
+              <div>
+                <label className="text-[11px] uppercase tracking-wider text-neutral-400 font-semibold block mb-1.5">
+                  Notice Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenMessage(messageOrder, 'thankyou')}
+                    className={`py-2 px-3 text-xs font-semibold text-center border transition-colors cursor-pointer rounded-xs ${
+                      messageType === 'thankyou'
+                        ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-bold'
+                        : 'bg-[#150F0D] border-[#3E2D24] text-neutral-300 hover:text-white hover:bg-[#201713]'
+                    }`}
+                  >
+                    1. Thank You Notice
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenMessage(messageOrder, 'shipped')}
-                  className={`py-2 px-3 text-xs font-semibold text-center border transition-colors cursor-pointer ${
-                    messageType === 'shipped'
-                      ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-bold'
-                      : 'bg-[#150F0D] border-[#3E2D24] text-neutral-300 hover:text-white hover:bg-[#201713]'
-                  }`}
-                >
-                  2. Dispatched Notice
-                </button>
-              </div>
-            </div>
-
-            {/* Message Textarea */}
-            <div className="space-y-1.5 mb-4">
-              <div className="flex items-center justify-between text-xs text-neutral-400">
-                <span>Message Content:</span>
-                <span className="text-[10px] text-neutral-500 font-mono">Editable text</span>
-              </div>
-              <textarea
-                rows={9}
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                className="w-full bg-[#120E0C] border border-[#3E2D25] focus:border-[#D4AF37] p-3 text-white text-xs leading-relaxed font-sans rounded-none focus:outline-none"
-              />
-            </div>
-
-            {/* Delivery Details Pill */}
-            <div className="p-3 bg-[#120D0B] border border-[#2D1F18] text-xs text-neutral-300 flex flex-wrap items-center justify-between gap-2 mb-5">
-              <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-[#D4AF37]" />
-                <span className="font-mono text-[11px] text-white">{messageOrder.customer.email}</span>
-              </div>
-              {messageOrder.customer.phone && (
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  <span className="font-mono text-[11px] text-white">{messageOrder.customer.phone}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenMessage(messageOrder, 'shipped')}
+                    className={`py-2 px-3 text-xs font-semibold text-center border transition-colors cursor-pointer rounded-xs ${
+                      messageType === 'shipped'
+                        ? 'bg-[#D4AF37] text-black border-[#D4AF37] font-bold'
+                        : 'bg-[#150F0D] border-[#3E2D24] text-neutral-300 hover:text-white hover:bg-[#201713]'
+                    }`}
+                  >
+                    2. Dispatched Notice
+                  </button>
                 </div>
-              )}
+              </div>
+
+              {/* Message Textarea */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-neutral-400">
+                  <span>Message Content:</span>
+                  <span className="text-[10px] text-neutral-500 font-mono">Editable text</span>
+                </div>
+                <textarea
+                  rows={8}
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  className="w-full bg-[#120E0C] border border-[#3E2D25] focus:border-[#D4AF37] p-3 text-white text-xs leading-relaxed font-sans rounded-none focus:outline-none"
+                />
+              </div>
+
+              {/* Delivery Details Pill */}
+              <div className="p-3 bg-[#120D0B] border border-[#2D1F18] text-xs text-neutral-300 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span className="font-mono text-[11px] text-white">{messageOrder.customer.email}</span>
+                </div>
+                {messageOrder.customer.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <span className="font-mono text-[11px] text-white">{messageOrder.customer.phone}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {/* Copy Button */}
-              <button
-                type="button"
-                onClick={handleCopyMessage}
-                className="py-2.5 px-3 bg-[#261E1A] hover:bg-[#3A2D27] border border-[#D4AF37]/50 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-              >
-                {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#D4AF37]" />}
-                <span>{isCopied ? 'Copied' : 'Copy Text'}</span>
-              </button>
+            {/* Sticky Bottom Actions */}
+            <div className="sticky bottom-0 z-20 bg-[#14100E] border-t border-[#2D211B] p-4 shrink-0 shadow-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {/* Copy Button */}
+                <button
+                  type="button"
+                  onClick={handleCopyMessage}
+                  className="py-2.5 px-3 bg-[#261E1A] hover:bg-[#3A2D27] border border-[#D4AF37]/50 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors rounded-xs"
+                >
+                  {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#D4AF37]" />}
+                  <span>{isCopied ? 'Copied' : 'Copy Text'}</span>
+                </button>
 
-              {/* WhatsApp Button */}
-              <button
-                type="button"
-                onClick={handleSendWhatsApp}
-                className="py-2.5 px-3 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-              >
-                <Send className="w-4 h-4" />
-                <span>WhatsApp Message</span>
-              </button>
+                {/* WhatsApp Button */}
+                <button
+                  type="button"
+                  onClick={handleSendWhatsApp}
+                  className="py-2.5 px-3 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs rounded-xs"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </button>
 
-              {/* Email Button */}
-              <button
-                type="button"
-                onClick={handleSendEmail}
-                className="py-2.5 px-3 bg-[#D4AF37] hover:bg-[#b8952b] text-black text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-              >
-                <Mail className="w-4 h-4" />
-                <span>Send Email</span>
-              </button>
+                {/* Email Button */}
+                <button
+                  type="button"
+                  onClick={handleSendEmail}
+                  className="py-2.5 px-3 bg-[#D4AF37] hover:bg-[#b8952b] text-black text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs rounded-xs"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Send Email</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
