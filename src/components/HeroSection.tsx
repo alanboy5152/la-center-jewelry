@@ -14,12 +14,20 @@ export const HeroSection: React.FC = () => {
   // Synchronously compute initial video from frame 1 so the <video> tag is NEVER delayed
   const getInitialVideo = useCallback(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-    let target = isMobile
-      ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || '/videos/hero-active-mobile.mp4'
-      : heroConfig.videoUrl || '/videos/hero-active.mp4';
+    const directStatic = isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4';
 
-    if (target.includes('hero-jewelry')) {
-      target = isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4';
+    let target = isMobile
+      ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || directStatic
+      : heroConfig.videoUrl || directStatic;
+
+    // Never pass marker strings as video src, use the optimized direct file
+    if (
+      !target ||
+      target === 'cloud_hero_video' ||
+      target === 'local_uploaded_video' ||
+      target.includes('hero-jewelry')
+    ) {
+      return directStatic;
     }
     return target;
   }, [heroConfig.videoUrl, heroConfig.mobileVideoUrl]);
@@ -39,10 +47,13 @@ export const HeroSection: React.FC = () => {
     // Enforce strict muted inline attributes for mobile autoplay policy
     video.defaultMuted = true;
     video.muted = true;
+    video.volume = 0;
+    video.playsInline = true;
     video.setAttribute('muted', '');
     video.setAttribute('playsinline', '');
     video.setAttribute('webkit-playsinline', 'true');
     video.setAttribute('x5-playsinline', 'true');
+    video.setAttribute('x5-video-player-type', 'h5-page');
 
     if (video.paused) {
       const playPromise = video.play();
@@ -52,6 +63,7 @@ export const HeroSection: React.FC = () => {
           requestAnimationFrame(() => {
             if (videoRef.current && videoRef.current.paused) {
               videoRef.current.muted = true;
+              videoRef.current.volume = 0;
               videoRef.current.play().catch(() => {});
             }
           });
@@ -84,35 +96,31 @@ export const HeroSection: React.FC = () => {
 
     const resolveVideo = async () => {
       const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-      let target = isMobile
-        ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || '/videos/hero-active-mobile.mp4'
-        : heroConfig.videoUrl || '/videos/hero-active.mp4';
+      const directStatic = isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4';
 
-      if (target.includes('hero-jewelry')) {
-        target = isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4';
+      let target = isMobile
+        ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || directStatic
+        : heroConfig.videoUrl || directStatic;
+
+      if (
+        !target ||
+        target === 'cloud_hero_video' ||
+        target === 'local_uploaded_video' ||
+        target.includes('hero-jewelry')
+      ) {
+        target = directStatic;
       }
 
-      if (!target) {
-        if (isMounted) setCurrentVideoSrc('');
+      // If pointing to a direct external URL
+      if (target.startsWith('http://') || target.startsWith('https://')) {
+        if (isMounted && target !== currentVideoSrc) {
+          setCurrentVideoSrc(target);
+        }
         return;
       }
 
-      if (target === 'local_uploaded_video' || target === 'cloud_hero_video') {
-        const cachedBlob = await getMediaUrl('hero_video_desktop');
-        if (cachedBlob && isMounted) {
-          setCurrentVideoSrc(cachedBlob);
-          return;
-        }
-
-        const cloudUrl = await getHeroVideoFromCloudOrCache();
-        if (cloudUrl && isMounted) {
-          setCurrentVideoSrc(cloudUrl);
-          return;
-        }
-
-        if (isMounted) {
-          setCurrentVideoSrc(isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4');
-        }
+      // If already playing the static video, keep playing uninterrupted
+      if (currentVideoSrc === directStatic) {
         return;
       }
 
@@ -126,7 +134,7 @@ export const HeroSection: React.FC = () => {
     // Subscribe to cloud updates in real-time across all browsers
     const unsubscribe = subscribeToCloudHeroVideo((cloudUrl) => {
       if (!isMounted) return;
-      if (cloudUrl) {
+      if (cloudUrl && cloudUrl.startsWith('http')) {
         setCurrentVideoSrc(cloudUrl);
         setVideoError(false);
       }
@@ -136,7 +144,7 @@ export const HeroSection: React.FC = () => {
       isMounted = false;
       unsubscribe();
     };
-  }, [heroConfig.videoUrl, heroConfig.mobileVideoUrl]);
+  }, [heroConfig.videoUrl, heroConfig.mobileVideoUrl, currentVideoSrc]);
 
   // Autoplay activation lifecycle on mount and on ANY touch/scroll anywhere on the page
   useEffect(() => {
@@ -144,10 +152,19 @@ export const HeroSection: React.FC = () => {
 
     // Staggered retries to guarantee autoplay even on slow cellular networks or older iOS Safari
     const t1 = setTimeout(triggerAutoplay, 50);
-    const t2 = setTimeout(triggerAutoplay, 200);
-    const t3 = setTimeout(triggerAutoplay, 500);
-    const t4 = setTimeout(triggerAutoplay, 1000);
-    const t5 = setTimeout(triggerAutoplay, 2000);
+    const t2 = setTimeout(triggerAutoplay, 150);
+    const t3 = setTimeout(triggerAutoplay, 300);
+    const t4 = setTimeout(triggerAutoplay, 600);
+    const t5 = setTimeout(triggerAutoplay, 1200);
+
+    const handleAnyUserActivity = () => {
+      const video = videoRef.current;
+      if (video && video.paused) {
+        video.muted = true;
+        video.volume = 0;
+        video.play().catch(() => {});
+      }
+    };
 
     // Any micro-interaction (scroll, tap anywhere, pointer, touch) starts video instantly
     const globalTriggers = [
@@ -160,16 +177,10 @@ export const HeroSection: React.FC = () => {
       'scroll',
       'wheel',
       'keydown',
+      'pageshow',
+      'focus',
       'visibilitychange',
     ];
-
-    const handleAnyUserActivity = () => {
-      const video = videoRef.current;
-      if (video && video.paused) {
-        video.muted = true;
-        video.play().catch(() => {});
-      }
-    };
 
     globalTriggers.forEach((evt) => {
       window.addEventListener(evt, handleAnyUserActivity, { passive: true, capture: true });
@@ -207,13 +218,16 @@ export const HeroSection: React.FC = () => {
               if (el) {
                 el.defaultMuted = true;
                 el.muted = true;
+                el.volume = 0;
+                el.playsInline = true;
                 el.setAttribute('muted', '');
                 el.setAttribute('playsinline', '');
                 el.setAttribute('webkit-playsinline', 'true');
                 el.setAttribute('x5-playsinline', 'true');
                 el.setAttribute('x5-video-player-type', 'h5-page');
-                if (el.paused) {
-                  el.play().catch(() => {});
+                const p = el.play();
+                if (p !== undefined) {
+                  p.catch(() => {});
                 }
               }
             }}
@@ -228,18 +242,22 @@ export const HeroSection: React.FC = () => {
             disableRemotePlayback
             onLoadedMetadata={(e) => {
               e.currentTarget.muted = true;
+              e.currentTarget.volume = 0;
               e.currentTarget.play().catch(() => {});
             }}
             onLoadedData={(e) => {
               e.currentTarget.muted = true;
+              e.currentTarget.volume = 0;
               e.currentTarget.play().catch(() => {});
             }}
             onCanPlay={(e) => {
               e.currentTarget.muted = true;
+              e.currentTarget.volume = 0;
               e.currentTarget.play().catch(() => {});
             }}
             onCanPlayThrough={(e) => {
               e.currentTarget.muted = true;
+              e.currentTarget.volume = 0;
               e.currentTarget.play().catch(() => {});
             }}
             onError={() => {
@@ -251,9 +269,7 @@ export const HeroSection: React.FC = () => {
               }
             }}
             className="absolute inset-0 w-full h-full object-cover object-center z-0 pointer-events-none"
-          >
-            <source src={currentVideoSrc} type="video/mp4" />
-          </video>
+          />
         ) : (
           <div
             className="absolute inset-0 z-0 opacity-40 pointer-events-none"
