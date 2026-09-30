@@ -2,16 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   Video,
-  Eye,
-  Check,
-  AlertCircle,
-  X,
-  Sliders,
-  Monitor,
   Trash2,
   Play,
   Pause,
   Film,
+  Check,
+  AlertCircle,
+  Monitor,
+  Eye,
   CheckCircle2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -28,59 +26,49 @@ export const AdminHeroTab: React.FC = () => {
 
   const [form, setForm] = useState<HeroConfig>({
     ...heroConfig,
-    activeMode: 'video',
+    isEnabled: true,
+    autoplay: true,
   });
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [previewIsPlaying, setPreviewIsPlaying] = useState(true);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [previewVideoSrc, setPreviewVideoSrc] = useState<string>('');
 
   const previewVideoRef = useRef<HTMLVideoElement>(null);
-  const modalVideoRef = useRef<HTMLVideoElement>(null);
 
   // Synchronously resolve video source for live preview
   useEffect(() => {
     let isMounted = true;
 
     const resolvePreview = async () => {
-      // If a local custom video was uploaded
-      if (form.videoUrl === 'local_uploaded_video' || form.uploadedVideoFileName) {
-        const cached = await getMediaUrl('hero_video_desktop');
-        if (cached && isMounted) {
-          setPreviewVideoSrc(cached);
-          return;
-        }
-      }
-
-      if (!form.videoUrl) {
-        const cached = await getMediaUrl('hero_video_desktop');
-        if (cached && isMounted) {
-          setPreviewVideoSrc(cached);
-          return;
-        }
-        if (isMounted) setPreviewVideoSrc('');
+      // 1. Check local IndexedDB first for 0ms instant display
+      const cached = await getMediaUrl('hero_video_desktop');
+      if (cached && isMounted) {
+        setPreviewVideoSrc(cached);
         return;
       }
 
-      if (form.videoUrl === 'cloud_hero_video') {
-        const cached = await getMediaUrl('hero_video_desktop');
-        if (cached && isMounted) {
-          setPreviewVideoSrc(cached);
-          return;
-        }
+      // 2. If cloud_hero_video, fetch from Firestore cloud chunks
+      if (form.videoUrl === 'cloud_hero_video' || form.videoUrl === 'local_uploaded_video') {
         const cloudUrl = await getHeroVideoFromCloudOrCache();
         if (cloudUrl && isMounted) {
           setPreviewVideoSrc(cloudUrl);
           return;
         }
+      }
+
+      // 3. If direct URL
+      if (form.videoUrl && form.videoUrl !== 'cloud_hero_video' && form.videoUrl !== 'local_uploaded_video') {
+        if (isMounted) setPreviewVideoSrc(form.videoUrl);
         return;
       }
 
+      // 4. Default fallback video
       if (isMounted) {
-        setPreviewVideoSrc(form.videoUrl);
+        setPreviewVideoSrc('/videos/hero-active.mp4');
       }
     };
 
@@ -91,11 +79,7 @@ export const AdminHeroTab: React.FC = () => {
     };
   }, [form.videoUrl]);
 
-  const handleChange = (field: keyof HeroConfig, value: string | number | boolean) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Video File Upload handler with Cloud Firestore sync
+  // Video File Upload handler with Cloud sync
   const handleVideoFileUpload = async (file: File) => {
     setValidationError(null);
 
@@ -116,16 +100,16 @@ export const AdminHeroTab: React.FC = () => {
       setIsUploading(true);
       setUploadProgress(15);
 
-      // 1. Instant 0ms local preview playback
+      // Instant 0ms local preview playback
       const immediateUrl = URL.createObjectURL(file);
       setPreviewVideoSrc(immediateUrl);
 
-      // 2. Upload to Cloud Firestore in parallel chunks so ALL browsers & devices worldwide receive it
+      // Upload to Cloud Firestore in parallel chunks so ALL browsers & devices worldwide receive it
       await uploadHeroVideoToCloud(file, (percent) => {
         setUploadProgress(percent);
       });
 
-      // 3. Set heroConfig videoUrl to 'cloud_hero_video' and save to Firestore
+      // Update form
       const updatedForm: HeroConfig = {
         ...form,
         videoUrl: 'cloud_hero_video',
@@ -134,12 +118,15 @@ export const AdminHeroTab: React.FC = () => {
         mobilePosterUrl: '/videos/hero-active-poster-mobile.jpg',
         uploadedVideoFileName: file.name,
         uploadedVideoFileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        isEnabled: true,
+        autoplay: true,
+        activeMode: 'video',
       };
 
       setForm(updatedForm);
       updateHeroConfig(updatedForm);
 
-      showToast(`Video "${file.name}" uploaded to Cloud! Live on all browsers & devices.`, 'success');
+      showToast(`Video "${file.name}" uploaded successfully! Live on all devices.`, 'success');
     } catch (err) {
       console.error(err);
       setValidationError('Failed to process video file.');
@@ -158,14 +145,19 @@ export const AdminHeroTab: React.FC = () => {
       console.warn('Cleanup warning:', e);
     }
 
+    try {
+      await removeMediaBlob('hero_video_desktop');
+    } catch {}
+
     const updatedForm: HeroConfig = {
       ...form,
       videoUrl: '',
       mobileVideoUrl: '',
-      posterUrl: '',
-      mobilePosterUrl: '',
-      uploadedVideoFileName: undefined,
-      uploadedVideoFileSize: undefined,
+      uploadedVideoFileName: '',
+      uploadedVideoFileSize: '',
+      isEnabled: true,
+      autoplay: true,
+      activeMode: 'video',
     };
 
     setForm(updatedForm);
@@ -197,10 +189,11 @@ export const AdminHeroTab: React.FC = () => {
   const handlePublish = () => {
     updateHeroConfig({
       ...form,
+      isEnabled: true,
+      autoplay: true,
       activeMode: 'video',
     });
-    setIsPreviewModalOpen(false);
-    showToast('Hero settings saved and published live to storefront!', 'success');
+    showToast('Hero video published live to storefront!', 'success');
   };
 
   const togglePreviewPlay = () => {
@@ -209,64 +202,55 @@ export const AdminHeroTab: React.FC = () => {
       previewVideoRef.current.pause();
       setPreviewIsPlaying(false);
     } else {
-      previewVideoRef.current.play().then(() => setPreviewIsPlaying(true)).catch(() => {});
+      previewVideoRef.current
+        .play()
+        .then(() => setPreviewIsPlaying(true))
+        .catch(() => {});
     }
   };
 
   return (
-    <div className="space-y-8 text-neutral-200">
-      {/* Header */}
+    <div className="space-y-6 text-neutral-200">
+      {/* Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#2C221D]">
         <div>
           <h2 className="font-serif text-2xl font-normal text-white">
-            Storefront Hero Section (Video Management)
+            Hero Video Management
           </h2>
           <p className="text-xs text-neutral-400 mt-1">
-            Upload your hero background video or paste a video URL, and publish to the live storefront.
+            Upload your hero background video. It will automatically play on all devices and browsers.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsPreviewModalOpen(true)}
-            className="px-4 py-2.5 bg-[#251C17] hover:bg-[#33261F] text-[#D4AF37] border border-[#48362B] text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md transition-all"
-          >
-            <Eye className="w-4 h-4" />
-            <span>Preview Staged Hero</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePublish}
-            className="px-6 py-2.5 bg-[#D4AF37] hover:bg-[#b8952b] text-black text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md transition-all"
-          >
-            <Check className="w-4 h-4" />
-            <span>SAVE &amp; PUBLISH</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handlePublish}
+          className="px-6 py-2.5 bg-[#D4AF37] hover:bg-[#b8952b] text-black text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-md transition-all rounded"
+        >
+          <Check className="w-4 h-4" />
+          <span>SAVE &amp; PUBLISH</span>
+        </button>
       </div>
 
       {validationError && (
-        <div className="p-3 bg-red-950/50 border border-red-800 text-red-200 text-xs flex items-center gap-2">
+        <div className="p-3 bg-red-950/50 border border-red-800 text-red-200 text-xs flex items-center gap-2 rounded">
           <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
           <span>{validationError}</span>
         </div>
       )}
 
-      {/* Main Grid: Left Column Controls, Right Column Live Screen View */}
+      {/* Main Clean Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column (7 cols): Controls */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* 1. VIDEO UPLOAD & SOURCE */}
-          <div className="bg-[#1A1412] border border-[#2D211B] p-5 space-y-5">
+        {/* Left Column: Upload & Delete Controls */}
+        <div className="lg:col-span-6 space-y-5">
+          <div className="bg-[#1A1412] border border-[#2D211B] p-6 rounded space-y-5">
             <div className="flex items-center justify-between border-b border-[#281D18] pb-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-2">
                 <Video className="w-4 h-4" />
-                <span>Upload Hero Section Video</span>
+                <span>Upload Video</span>
               </h3>
               <span className="text-[11px] text-neutral-400 font-mono">
-                MP4 • WEBM • MAX 150MB
+                MP4 • WEBM
               </span>
             </div>
 
@@ -281,11 +265,11 @@ export const AdminHeroTab: React.FC = () => {
                   : 'border-[#3D2C23] hover:border-[#D4AF37]/50 bg-[#120E0C]'
               }`}
             >
-              <div className="w-12 h-12 rounded-full bg-[#251A15] border border-[#4A3428] flex items-center justify-center text-[#D4AF37] mb-3">
+              <div className="w-14 h-14 rounded-full bg-[#251A15] border border-[#4A3428] flex items-center justify-center text-[#D4AF37] mb-3">
                 {isUploading ? (
-                  <div className="w-5 h-5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Upload className="w-6 h-6" />
+                  <Upload className="w-7 h-7" />
                 )}
               </div>
 
@@ -295,10 +279,10 @@ export const AdminHeroTab: React.FC = () => {
                   : 'Choose a Video from Your Device'}
               </h4>
               <p className="text-xs text-neutral-400 max-w-sm mb-4">
-                Drag &amp; drop your MP4 or WebM video file here, or click the button below to browse your files.
+                Drag &amp; drop your MP4 or WebM video file here, or click below to browse.
               </p>
 
-              <label className="px-5 py-2.5 bg-[#D4AF37] hover:bg-[#b8952b] text-black text-xs font-bold uppercase tracking-wider rounded cursor-pointer shadow-lg transition-all flex items-center gap-2">
+              <label className="px-6 py-2.5 bg-[#D4AF37] hover:bg-[#b8952b] text-black text-xs font-bold uppercase tracking-wider rounded cursor-pointer shadow-lg transition-all flex items-center gap-2">
                 <Film className="w-4 h-4" />
                 <span>Browse Video File</span>
                 <input
@@ -318,109 +302,57 @@ export const AdminHeroTab: React.FC = () => {
                 <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-950/60 border border-emerald-700/60 rounded text-xs text-emerald-300">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span>
-                    Uploaded: <strong>{form.uploadedVideoFileName}</strong> ({form.uploadedVideoFileSize})
+                    Active: <strong>{form.uploadedVideoFileName}</strong> ({form.uploadedVideoFileSize})
                   </span>
                 </div>
               )}
             </div>
 
             {/* Delete Active Video Banner */}
-            {form.videoUrl && (
-              <div className="flex items-center justify-between w-full p-3 bg-red-950/30 border border-red-900/50 rounded">
+            {(form.videoUrl || form.uploadedVideoFileName) && (
+              <div className="flex items-center justify-between w-full p-4 bg-red-950/30 border border-red-900/50 rounded">
                 <div className="text-xs text-red-200">
-                  <span className="font-semibold block">A custom video is currently active.</span>
+                  <span className="font-semibold block">A custom video is active.</span>
                   <span className="text-[11px] text-red-300/80">Click delete to clear this video completely.</span>
                 </div>
                 <button
                   type="button"
                   onClick={handleDeleteVideo}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded flex items-center gap-1.5 cursor-pointer transition-colors shadow"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded flex items-center gap-1.5 cursor-pointer transition-colors shadow"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                   <span>Delete Video</span>
                 </button>
               </div>
             )}
 
-            {/* Direct Video URL Input */}
-            <div className="space-y-1.5 pt-2 border-t border-[#261C16]">
-              <label className="text-xs text-neutral-300 font-semibold flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Monitor className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  Or Enter Direct Video URL (MP4 / WebM Link)
-                </span>
-                {form.videoUrl && (
-                  <button
-                    type="button"
-                    onClick={handleDeleteVideo}
-                    className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" /> Clear
-                  </button>
-                )}
+            {/* Direct Video URL Input (Optional) */}
+            <div className="space-y-1.5 pt-3 border-t border-[#261C16]">
+              <label className="text-xs text-neutral-300 font-semibold flex items-center gap-1.5">
+                <Monitor className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>Or Enter Direct Video URL (MP4 / WebM)</span>
               </label>
               <input
                 type="url"
                 value={form.videoUrl === 'cloud_hero_video' ? '' : form.videoUrl}
-                onChange={(e) => handleChange('videoUrl', e.target.value)}
-                placeholder="https://example.com/videos/storefront-video.mp4"
-                className="w-full bg-[#120E0C] border border-[#3E2D25] p-2.5 text-xs text-white focus:border-[#D4AF37] focus:outline-none font-mono"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm((prev) => ({
+                    ...prev,
+                    videoUrl: val,
+                    mobileVideoUrl: val,
+                    uploadedVideoFileName: val ? 'External URL Video' : '',
+                  }));
+                  setPreviewVideoSrc(val);
+                }}
+                placeholder="https://example.com/video.mp4"
+                className="w-full bg-[#120E0C] border border-[#3E2D25] p-2.5 text-xs text-white focus:border-[#D4AF37] focus:outline-none rounded font-mono"
               />
             </div>
           </div>
 
-          {/* 2. VIDEO PLAYBACK SETTINGS */}
-          <div className="bg-[#1A1412] border border-[#2D211B] p-5 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-2">
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Playback &amp; Framing Settings</span>
-            </h3>
-
-            {/* Enable Hero Section */}
-            <div className="flex items-center justify-between py-2 border-b border-[#281D18]">
-              <div>
-                <span className="text-xs font-medium text-white block">
-                  Enable Hero Section
-                </span>
-                <span className="text-[11px] text-neutral-400">
-                  Toggle whether the video hero section is rendered on the public storefront.
-                </span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isEnabled}
-                  onChange={(e) => handleChange('isEnabled', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37]" />
-              </label>
-            </div>
-
-            {/* Autoplay Toggle */}
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <span className="text-xs font-medium text-white block">
-                  Autoplay Video on Entrance
-                </span>
-                <span className="text-[11px] text-neutral-400">
-                  Starts in muted loop automatically when customers arrive.
-                </span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.autoplay ?? true}
-                  onChange={(e) => handleChange('autoplay', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37]" />
-              </label>
-            </div>
-          </div>
-
-          {/* 3. STOREFRONT TEXT OVERLAY */}
-          <div className="bg-[#1A1412] border border-[#2D211B] p-5 space-y-4">
+          {/* Storefront Headline & Tagline Signage */}
+          <div className="bg-[#1A1412] border border-[#2D211B] p-6 rounded space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-2">
               <Film className="w-3.5 h-3.5" />
               <span>Hero Text Signage Overlay</span>
@@ -433,9 +365,9 @@ export const AdminHeroTab: React.FC = () => {
               <input
                 type="text"
                 value={form.headline}
-                onChange={(e) => handleChange('headline', e.target.value)}
+                onChange={(e) => setForm((prev) => ({ ...prev, headline: e.target.value }))}
                 placeholder="𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬"
-                className="w-full bg-[#120E0C] border border-[#3E2D25] p-2 text-xs text-white focus:border-[#D4AF37] focus:outline-none"
+                className="w-full bg-[#120E0C] border border-[#3E2D25] p-2.5 text-xs text-white focus:border-[#D4AF37] focus:outline-none rounded"
               />
             </div>
 
@@ -446,17 +378,17 @@ export const AdminHeroTab: React.FC = () => {
               <input
                 type="text"
                 value={form.tagline}
-                onChange={(e) => handleChange('tagline', e.target.value)}
+                onChange={(e) => setForm((prev) => ({ ...prev, tagline: e.target.value }))}
                 placeholder="Jewelry for a Lifetime"
-                className="w-full bg-[#120E0C] border border-[#3E2D25] p-2 text-xs text-white focus:border-[#D4AF37] focus:outline-none"
+                className="w-full bg-[#120E0C] border border-[#3E2D25] p-2.5 text-xs text-white focus:border-[#D4AF37] focus:outline-none rounded"
               />
             </div>
           </div>
         </div>
 
-        {/* Right Column (5 cols): Live Scaled Preview */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-[#1A1412] border border-[#2D211B] p-5 space-y-4 sticky top-6">
+        {/* Right Column: Live Video Preview */}
+        <div className="lg:col-span-6 space-y-4">
+          <div className="bg-[#1A1412] border border-[#2D211B] p-6 rounded space-y-4 sticky top-6">
             <div className="flex items-center justify-between border-b border-[#281D18] pb-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-2">
                 <Eye className="w-4 h-4" />
@@ -466,24 +398,23 @@ export const AdminHeroTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={togglePreviewPlay}
-                  className="px-2 py-1 bg-[#251A15] hover:bg-[#34241C] text-[10px] text-[#D4AF37] border border-[#483325] flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-3 py-1 bg-[#251A15] hover:bg-[#34241C] text-xs text-[#D4AF37] border border-[#483325] rounded flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
                   {previewIsPlaying ? (
                     <>
-                      <Pause className="w-3 h-3" /> Pause
+                      <Pause className="w-3.5 h-3.5" /> Pause
                     </>
                   ) : (
                     <>
-                      <Play className="w-3 h-3" /> Play
+                      <Play className="w-3.5 h-3.5" /> Play
                     </>
                   )}
                 </button>
               )}
             </div>
 
-            {/* Scaled Preview Frame with Live Video in 16:9 */}
-            <div className="relative aspect-video w-full bg-[#120E0C] border border-[#382A22] overflow-hidden flex flex-col items-center justify-center p-4 shadow-2xl">
-              {/* Actual Video Playing */}
+            {/* 16:9 Live Preview Player */}
+            <div className="relative aspect-video w-full bg-[#120E0C] border border-[#382A22] rounded overflow-hidden flex flex-col items-center justify-center shadow-2xl">
               {previewVideoSrc ? (
                 <>
                   <video
@@ -499,7 +430,8 @@ export const AdminHeroTab: React.FC = () => {
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
-                      background: `radial-gradient(ellipse at center, rgba(14, 10, 8, 0.45) 0%, rgba(10, 7, 5, 0.65) 100%)`,
+                      background:
+                        'radial-gradient(ellipse at center, rgba(14, 10, 8, 0.35) 0%, rgba(10, 7, 5, 0.6) 100%)',
                     }}
                   />
                 </>
@@ -512,7 +444,7 @@ export const AdminHeroTab: React.FC = () => {
                     No Video Uploaded
                   </p>
                   <p className="text-[11px] text-neutral-400 max-w-xs">
-                    Please upload an MP4 or WebM video file from your device.
+                    Please upload an MP4 or WebM video file.
                   </p>
                 </div>
               )}
@@ -528,7 +460,7 @@ export const AdminHeroTab: React.FC = () => {
                       '0 2px 4px rgba(0, 0, 0, 0.95), 0 0 16px rgba(243, 202, 82, 0.3)',
                   }}
                 >
-                  {form.headline}
+                  𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬
                 </h4>
                 <p
                   className="font-sans font-light text-[10px] sm:text-xs tracking-widest text-[#F3CA52]"
@@ -537,7 +469,7 @@ export const AdminHeroTab: React.FC = () => {
                     textShadow: '0 2px 4px rgba(0, 0, 0, 0.95)',
                   }}
                 >
-                  {form.tagline || 'Jewelry for a Lifetime'}
+                  Jewelry for a Lifetime
                 </p>
               </div>
 
@@ -552,143 +484,15 @@ export const AdminHeroTab: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-3 bg-[#120E0C] border border-[#2B1E18] text-[11px] text-[#A89681] space-y-1.5">
-              <div className="flex items-center gap-1.5 text-[#D4AF37] font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Cloud Synced:</span>
-              </div>
-              <p>
-                The video you upload will be synced to cloud storage and will play across all visitor devices and browsers.
-              </p>
+            <div className="p-3 bg-[#120E0C] border border-[#2B1E18] rounded text-xs text-[#A89681] flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>
+                Autoplay is automatically enabled for all mobile and desktop browsers.
+              </span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* =========================================================
-          FULL ADMIN PREVIEW MODAL
-          ========================================================= */}
-      {isPreviewModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col justify-between p-4 sm:p-8 animate-fade-in">
-          {/* Top Bar */}
-          <div className="flex items-center justify-between pb-4 border-b border-[#362720]">
-            <div className="flex items-center gap-3">
-              <Video className="w-5 h-5 text-[#D4AF37]" />
-              <div>
-                <h3 className="font-serif text-lg text-white">
-                  Storefront Hero Video Preview (Draft)
-                </h3>
-                <p className="text-xs text-neutral-400">
-                  Review the video experience exactly as public visitors will see it.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsPreviewModalOpen(false)}
-              className="p-2 text-neutral-400 hover:text-white cursor-pointer"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Interactive Preview Viewport */}
-          <div className="my-auto relative w-full max-w-5xl mx-auto h-[65vh] bg-[#12100F] border border-[#3E2E25] overflow-hidden flex flex-col items-center justify-center p-8 shadow-2xl">
-            {previewVideoSrc ? (
-              <>
-                <video
-                  ref={modalVideoRef}
-                  src={previewVideoSrc}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: `radial-gradient(ellipse at center, rgba(14, 10, 8, 0.45) 0%, rgba(10, 7, 5, 0.65) 100%)`,
-                  }}
-                />
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center p-8 space-y-2 z-0 select-none">
-                <Film className="w-10 h-10 text-[#D4AF37] opacity-60" />
-                <p className="text-sm font-semibold text-white">No Video Uploaded</p>
-                <p className="text-xs text-neutral-400">Upload a video to see live preview.</p>
-              </div>
-            )}
-
-            {/* Central Window Signage */}
-            <div className="relative z-10 text-center select-none pointer-events-none">
-              <h2
-                className="text-2xl sm:text-4xl md:text-5xl font-normal text-[#F3CA52] mb-2 leading-tight"
-                style={{
-                  fontFamily:
-                    "'Segoe UI Symbol', 'Apple Symbols', 'STIX Two Math', 'Cambria Math', serif, system-ui, sans-serif",
-                  textShadow:
-                    '0 2px 4px rgba(0, 0, 0, 0.95), 0 0 24px rgba(243, 202, 82, 0.3)',
-                }}
-              >
-                {form.headline}
-              </h2>
-              <p
-                className="font-sans font-light sm:font-normal text-sm sm:text-xl tracking-widest text-[#F3CA52]"
-                style={{
-                  fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
-                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.95)',
-                }}
-              >
-                {form.tagline || 'Jewelry for a Lifetime'}
-              </p>
-            </div>
-
-            {/* Bottom Floating Promotional Text */}
-            <div className="absolute bottom-4 right-6 text-right select-none pointer-events-none">
-              <p
-                className="font-sans font-normal text-sm text-[#F3CA52]"
-                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
-              >
-                Free Parking
-              </p>
-              <p
-                className="font-sans font-normal text-xs text-[#F3CA52] mt-0.5"
-                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
-              >
-                Special Prices: 30-50% Off
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom Action Footer */}
-          <div className="flex items-center justify-between pt-4 border-t border-[#362720] max-w-5xl mx-auto w-full">
-            <div className="text-xs text-neutral-400">
-              Draft changes will only take effect on the live storefront once you click Save &amp; Publish.
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIsPreviewModalOpen(false)}
-                className="px-5 py-2 border border-[#48362B] text-xs font-semibold text-neutral-300 hover:text-white cursor-pointer"
-              >
-                Back to Editor
-              </button>
-              <button
-                type="button"
-                onClick={handlePublish}
-                className="px-6 py-2 bg-[#D4AF37] hover:bg-[#b8952b] text-black text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg transition-all"
-              >
-                <Check className="w-4 h-4" />
-                <span>SAVE &amp; PUBLISH LIVE</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
