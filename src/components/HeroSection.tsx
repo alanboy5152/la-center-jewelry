@@ -1,15 +1,13 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
-import {
-  subscribeToCloudHeroVideo,
-} from '../services/cloudVideoStorage';
+import { subscribeToCloudHeroVideo } from '../services/cloudVideoStorage';
 
 export const HeroSection: React.FC = () => {
   const { heroConfig } = useApp();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoError, setVideoError] = useState(false);
 
-  // Synchronously compute initial video from frame 1 so the <video> tag is NEVER delayed
+  // Synchronously compute initial video from frame 1
   const getInitialVideo = useCallback(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     const directStatic = isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4';
@@ -18,7 +16,6 @@ export const HeroSection: React.FC = () => {
       ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || directStatic
       : heroConfig.videoUrl || directStatic;
 
-    // Never pass marker strings as video src, use the optimized direct file
     if (
       !target ||
       target === 'cloud_hero_video' ||
@@ -42,7 +39,6 @@ export const HeroSection: React.FC = () => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Enforce strict muted inline attributes for mobile autoplay policy
     video.defaultMuted = true;
     video.muted = true;
     video.volume = 0;
@@ -58,7 +54,6 @@ export const HeroSection: React.FC = () => {
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          // In case of aggressive low-power mode, try again in next microtask
           requestAnimationFrame(() => {
             if (videoRef.current && videoRef.current.paused) {
               videoRef.current.muted = true;
@@ -89,7 +84,6 @@ export const HeroSection: React.FC = () => {
       const playPromise = el.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          // Retry immediately
           setTimeout(() => {
             if (el.paused) {
               el.muted = true;
@@ -101,6 +95,58 @@ export const HeroSection: React.FC = () => {
       }
     }
   }, []);
+
+  // Active Watchdog: continuously enforce playback on site visit without touch
+  useEffect(() => {
+    triggerAutoplay();
+
+    // High-frequency watchdog checks every 80ms for the first 2.5s
+    const watchdogInterval = setInterval(() => {
+      const video = videoRef.current;
+      if (video && video.paused) {
+        video.muted = true;
+        video.volume = 0;
+        video.play().catch(() => {});
+      }
+    }, 80);
+
+    const watchdogStopTimer = setTimeout(() => {
+      clearInterval(watchdogInterval);
+    }, 2500);
+
+    // Global site visit & interaction triggers
+    const handleActivity = () => {
+      const video = videoRef.current;
+      if (video && video.paused) {
+        video.muted = true;
+        video.volume = 0;
+        video.play().catch(() => {});
+      }
+    };
+
+    const triggers = [
+      'pageshow',
+      'focus',
+      'visibilitychange',
+      'touchstart',
+      'touchmove',
+      'pointerdown',
+      'mousedown',
+      'scroll',
+    ];
+
+    triggers.forEach((evt) => {
+      window.addEventListener(evt, handleActivity, { passive: true, capture: true });
+    });
+
+    return () => {
+      clearInterval(watchdogInterval);
+      clearTimeout(watchdogStopTimer);
+      triggers.forEach((evt) => {
+        window.removeEventListener(evt, handleActivity, { capture: true });
+      });
+    };
+  }, [triggerAutoplay, currentVideoSrc]);
 
   // IntersectionObserver to guarantee play when hero enters viewport
   useEffect(() => {
@@ -124,66 +170,10 @@ export const HeroSection: React.FC = () => {
     return () => observer.disconnect();
   }, [currentVideoSrc]);
 
-  // Purge any legacy browser caches of old default video
-  useEffect(() => {
-    try {
-      if ('caches' in window) {
-        caches.keys().then((names) => {
-          names.forEach((name) => {
-            caches.open(name).then((cache) => {
-              cache.delete('/videos/hero-jewelry.mp4');
-              cache.delete('/videos/hero-jewelry-mobile.mp4');
-              cache.delete('/videos/hero-poster.jpg');
-              cache.delete('/videos/hero-poster-mobile.jpg');
-            });
-          });
-        });
-      }
-    } catch {}
-  }, []);
-
-  // Synchronously update video source if heroConfig changes
+  // Cloud sync listener for real-time video changes
   useEffect(() => {
     let isMounted = true;
 
-    const resolveVideo = async () => {
-      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-      const directStatic = isMobile ? '/videos/hero-active-mobile.mp4' : '/videos/hero-active.mp4';
-
-      let target = isMobile
-        ? heroConfig.mobileVideoUrl || heroConfig.videoUrl || directStatic
-        : heroConfig.videoUrl || directStatic;
-
-      if (
-        !target ||
-        target === 'cloud_hero_video' ||
-        target === 'local_uploaded_video' ||
-        target.includes('hero-jewelry')
-      ) {
-        target = directStatic;
-      }
-
-      // If pointing to a direct external URL
-      if (target.startsWith('http://') || target.startsWith('https://')) {
-        if (isMounted && target !== currentVideoSrc) {
-          setCurrentVideoSrc(target);
-        }
-        return;
-      }
-
-      // If already playing the static video, keep playing uninterrupted
-      if (currentVideoSrc === directStatic) {
-        return;
-      }
-
-      if (isMounted && target !== currentVideoSrc) {
-        setCurrentVideoSrc(target);
-      }
-    };
-
-    resolveVideo();
-
-    // Subscribe to cloud updates in real-time across all browsers
     const unsubscribe = subscribeToCloudHeroVideo((cloudUrl) => {
       if (!isMounted) return;
       if (cloudUrl && cloudUrl.startsWith('http')) {
@@ -196,70 +186,19 @@ export const HeroSection: React.FC = () => {
       isMounted = false;
       unsubscribe();
     };
-  }, [heroConfig.videoUrl, heroConfig.mobileVideoUrl, currentVideoSrc]);
-
-  // Autoplay activation lifecycle on mount and on ANY touch/scroll anywhere on the page
-  useEffect(() => {
-    triggerAutoplay();
-
-    // Staggered retries to guarantee autoplay even on slow cellular networks
-    const t1 = setTimeout(triggerAutoplay, 30);
-    const t2 = setTimeout(triggerAutoplay, 100);
-    const t3 = setTimeout(triggerAutoplay, 250);
-    const t4 = setTimeout(triggerAutoplay, 500);
-    const t5 = setTimeout(triggerAutoplay, 1000);
-
-    const handleAnyUserActivity = () => {
-      const video = videoRef.current;
-      if (video && video.paused) {
-        video.muted = true;
-        video.volume = 0;
-        video.play().catch(() => {});
-      }
-    };
-
-    // Any micro-interaction (scroll, tap anywhere, pointer, touch) starts video instantly
-    const globalTriggers = [
-      'touchstart',
-      'touchmove',
-      'touchend',
-      'pointerdown',
-      'pointerup',
-      'mousedown',
-      'scroll',
-      'wheel',
-      'keydown',
-      'pageshow',
-      'focus',
-      'visibilitychange',
-    ];
-
-    globalTriggers.forEach((evt) => {
-      window.addEventListener(evt, handleAnyUserActivity, { passive: true, capture: true });
-    });
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(t5);
-      globalTriggers.forEach((evt) => {
-        window.removeEventListener(evt, handleAnyUserActivity, { capture: true });
-      });
-    };
-  }, [triggerAutoplay, currentVideoSrc]);
+  }, []);
 
   if (!heroConfig.isEnabled) return null;
 
   return (
     <section
-      className="relative w-full h-[260px] min-[360px]:h-[290px] min-[400px]:h-[320px] sm:aspect-video md:aspect-auto md:h-[72vh] md:min-h-[480px] md:max-h-[760px] overflow-hidden flex flex-col items-center justify-center select-none"
+      className="relative w-full aspect-video md:aspect-auto md:h-[72vh] md:min-h-[480px] md:max-h-[760px] overflow-hidden flex flex-col items-center justify-center select-none"
       id="hero-storefront-section"
       onClick={triggerAutoplay}
     >
       {/* =========================================================
           BACKGROUND LAYER: PURE VIDEO HERO (AUTO-PLAYS INSTANTLY)
+          Strict 16:9 Widescreen on Mobile & Desktop
           Synchronously mounted, muted, playsinline, loop, autoPlay
           ========================================================= */}
       <div
@@ -329,14 +268,12 @@ export const HeroSection: React.FC = () => {
 
       {/* =========================================================
           HERO TEXT OVERLAY (STOREFRONT WINDOW SIGNAGE)
-          Larger, Zoomed, Clear & Prominent on Mobile View
-          1. L.A Center Jewelry Inc (Calligraphy Script, Bold, Gold)
-          2. Jewelry for a Lifetime (Sans-Serif, Thin / Non-Bold, Warm Golden Yellow)
+          Clear, Zoomed & Elegantly Scaled for 16:9 Mobile Ratio
           ========================================================= */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center my-auto py-2 sm:py-4 md:py-8 select-none pointer-events-none">
-        {/* 1. Main store name: "𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬" - Enlarged on Mobile */}
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center my-auto py-1 sm:py-4 md:py-8 select-none pointer-events-none">
+        {/* 1. Main store name: "𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬" */}
         <h1
-          className="w-full whitespace-nowrap text-[22px] min-[360px]:text-[25px] min-[400px]:text-[28px] sm:text-[34px] md:text-[50px] lg:text-[64px] xl:text-[76px] leading-tight text-[#F3CA52] mb-1 sm:mb-2 md:mb-3 select-none font-normal flex items-center justify-center gap-x-1.5 min-[360px]:gap-x-2 sm:gap-x-4 md:gap-x-6 drop-shadow-md"
+          className="w-full whitespace-nowrap text-[18px] min-[360px]:text-[20px] min-[400px]:text-[23px] sm:text-[32px] md:text-[50px] lg:text-[64px] xl:text-[76px] leading-tight text-[#F3CA52] mb-0.5 sm:mb-2 md:mb-3 select-none font-normal flex items-center justify-center gap-x-1 min-[360px]:gap-x-1.5 sm:gap-x-4 md:gap-x-6 drop-shadow-md"
           style={{
             fontFamily:
               "'Segoe UI Symbol', 'Apple Symbols', 'STIX Two Math', 'Cambria Math', 'DejaVu Sans', serif, system-ui, sans-serif",
@@ -356,9 +293,9 @@ export const HeroSection: React.FC = () => {
           )}
         </h1>
 
-        {/* 2. Tagline directly underneath - Zoomed for clarity */}
+        {/* 2. Tagline directly underneath */}
         <h2
-          className="font-sans font-normal text-[11px] min-[360px]:text-[12px] min-[400px]:text-[14px] sm:text-base md:text-2xl lg:text-[28px] tracking-[0.06em] sm:tracking-widest text-[#F3CA52]"
+          className="font-sans font-normal text-[10px] min-[360px]:text-[11px] min-[400px]:text-[12px] sm:text-base md:text-2xl lg:text-[28px] tracking-[0.06em] sm:tracking-widest text-[#F3CA52]"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 10px rgba(0, 0, 0, 0.85)',
@@ -373,7 +310,7 @@ export const HeroSection: React.FC = () => {
           ========================================================= */}
       <div className="absolute bottom-1 right-2 sm:bottom-3 sm:right-4 md:right-8 z-20 flex flex-col items-end text-right select-none pointer-events-none">
         <p
-          className="font-sans font-semibold text-[9px] min-[360px]:text-[10px] sm:text-xs md:text-sm tracking-wide text-[#F3CA52]"
+          className="font-sans font-semibold text-[8px] min-[360px]:text-[9px] sm:text-xs md:text-sm tracking-wide text-[#F3CA52]"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 8px rgba(0, 0, 0, 0.8)',
@@ -382,7 +319,7 @@ export const HeroSection: React.FC = () => {
           Free Parking
         </p>
         <p
-          className="font-sans font-medium text-[8px] min-[360px]:text-[9px] sm:text-[11px] md:text-xs tracking-wide text-[#F3CA52] mt-0.5"
+          className="font-sans font-medium text-[7px] min-[360px]:text-[8px] sm:text-[11px] md:text-xs tracking-wide text-[#F3CA52] mt-0.5"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 8px rgba(0, 0, 0, 0.8)',
