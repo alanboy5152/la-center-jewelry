@@ -1,8 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
-import { getMediaUrl } from '../services/mediaStorage';
 import {
-  getHeroVideoFromCloudOrCache,
   subscribeToCloudHeroVideo,
 } from '../services/cloudVideoStorage';
 
@@ -54,6 +52,7 @@ export const HeroSection: React.FC = () => {
     video.setAttribute('webkit-playsinline', 'true');
     video.setAttribute('x5-playsinline', 'true');
     video.setAttribute('x5-video-player-type', 'h5-page');
+    video.setAttribute('x5-video-player-fullscreen', 'false');
 
     if (video.paused) {
       const playPromise = video.play();
@@ -71,6 +70,59 @@ export const HeroSection: React.FC = () => {
       }
     }
   }, []);
+
+  // Callback ref for instant DOM-level initialization before paint
+  const handleVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (el) {
+      el.defaultMuted = true;
+      el.muted = true;
+      el.volume = 0;
+      el.playsInline = true;
+      el.setAttribute('muted', '');
+      el.setAttribute('playsinline', '');
+      el.setAttribute('webkit-playsinline', 'true');
+      el.setAttribute('x5-playsinline', 'true');
+      el.setAttribute('x5-video-player-type', 'h5-page');
+      el.setAttribute('x5-video-player-fullscreen', 'false');
+
+      const playPromise = el.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Retry immediately
+          setTimeout(() => {
+            if (el.paused) {
+              el.muted = true;
+              el.volume = 0;
+              el.play().catch(() => {});
+            }
+          }, 30);
+        });
+      }
+    }
+  }, []);
+
+  // IntersectionObserver to guarantee play when hero enters viewport
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            video.muted = true;
+            video.volume = 0;
+            video.play().catch(() => {});
+          }
+        });
+      },
+      { threshold: 0.05 }
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [currentVideoSrc]);
 
   // Purge any legacy browser caches of old default video
   useEffect(() => {
@@ -150,12 +202,12 @@ export const HeroSection: React.FC = () => {
   useEffect(() => {
     triggerAutoplay();
 
-    // Staggered retries to guarantee autoplay even on slow cellular networks or older iOS Safari
-    const t1 = setTimeout(triggerAutoplay, 50);
-    const t2 = setTimeout(triggerAutoplay, 150);
-    const t3 = setTimeout(triggerAutoplay, 300);
-    const t4 = setTimeout(triggerAutoplay, 600);
-    const t5 = setTimeout(triggerAutoplay, 1200);
+    // Staggered retries to guarantee autoplay even on slow cellular networks
+    const t1 = setTimeout(triggerAutoplay, 30);
+    const t2 = setTimeout(triggerAutoplay, 100);
+    const t3 = setTimeout(triggerAutoplay, 250);
+    const t4 = setTimeout(triggerAutoplay, 500);
+    const t5 = setTimeout(triggerAutoplay, 1000);
 
     const handleAnyUserActivity = () => {
       const video = videoRef.current;
@@ -202,7 +254,7 @@ export const HeroSection: React.FC = () => {
 
   return (
     <section
-      className="relative w-full aspect-video sm:aspect-video md:aspect-auto md:h-[72vh] md:min-h-[480px] md:max-h-[760px] overflow-hidden flex flex-col items-center justify-center select-none"
+      className="relative w-full h-[260px] min-[360px]:h-[290px] min-[400px]:h-[320px] sm:aspect-video md:aspect-auto md:h-[72vh] md:min-h-[480px] md:max-h-[760px] overflow-hidden flex flex-col items-center justify-center select-none"
       id="hero-storefront-section"
       onClick={triggerAutoplay}
     >
@@ -210,29 +262,14 @@ export const HeroSection: React.FC = () => {
           BACKGROUND LAYER: PURE VIDEO HERO (AUTO-PLAYS INSTANTLY)
           Synchronously mounted, muted, playsinline, loop, autoPlay
           ========================================================= */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0A0706]">
+      <div
+        className="absolute inset-0 w-full h-full overflow-hidden bg-[#0A0706] bg-cover bg-center"
+        style={{ backgroundImage: `url(${posterSrc})` }}
+      >
         {currentVideoSrc && !videoError ? (
           <video
-            ref={(el) => {
-              videoRef.current = el;
-              if (el) {
-                el.defaultMuted = true;
-                el.muted = true;
-                el.volume = 0;
-                el.playsInline = true;
-                el.setAttribute('muted', '');
-                el.setAttribute('playsinline', '');
-                el.setAttribute('webkit-playsinline', 'true');
-                el.setAttribute('x5-playsinline', 'true');
-                el.setAttribute('x5-video-player-type', 'h5-page');
-                const p = el.play();
-                if (p !== undefined) {
-                  p.catch(() => {});
-                }
-              }
-            }}
+            ref={handleVideoRef}
             src={currentVideoSrc}
-            poster={posterSrc}
             autoPlay
             loop
             muted
@@ -285,42 +322,49 @@ export const HeroSection: React.FC = () => {
           className="absolute inset-0 pointer-events-none z-10"
           style={{
             background:
-              'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.5) 100%)',
+              'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.55) 100%)',
           }}
         />
       </div>
 
       {/* =========================================================
           HERO TEXT OVERLAY (STOREFRONT WINDOW SIGNAGE)
-          1. L.A Center Jewelry Inc (Calligraphy Script, Bold, Gold, Single Line)
+          Larger, Zoomed, Clear & Prominent on Mobile View
+          1. L.A Center Jewelry Inc (Calligraphy Script, Bold, Gold)
           2. Jewelry for a Lifetime (Sans-Serif, Thin / Non-Bold, Warm Golden Yellow)
           ========================================================= */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center my-auto py-1 sm:py-4 md:py-8 select-none pointer-events-none">
-        {/* 1. Main store name: "𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬" */}
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center my-auto py-2 sm:py-4 md:py-8 select-none pointer-events-none">
+        {/* 1. Main store name: "𝓛.𝓐 𝓒𝓮𝓷𝓽𝓮𝓻 𝓙𝓮𝔀𝓮𝓵𝓻𝔂 𝓘𝓷𝓬" - Enlarged on Mobile */}
         <h1
-          className="w-full whitespace-nowrap text-[13px] min-[360px]:text-[15px] min-[400px]:text-[17px] sm:text-[28px] md:text-[50px] lg:text-[64px] xl:text-[76px] leading-tight text-[#F3CA52] mb-0.5 sm:mb-2 md:mb-3 select-none font-normal flex items-center justify-center gap-x-1 min-[360px]:gap-x-1.5 sm:gap-x-4 md:gap-x-6"
+          className="w-full whitespace-nowrap text-[22px] min-[360px]:text-[25px] min-[400px]:text-[28px] sm:text-[34px] md:text-[50px] lg:text-[64px] xl:text-[76px] leading-tight text-[#F3CA52] mb-1 sm:mb-2 md:mb-3 select-none font-normal flex items-center justify-center gap-x-1.5 min-[360px]:gap-x-2 sm:gap-x-4 md:gap-x-6 drop-shadow-md"
           style={{
             fontFamily:
               "'Segoe UI Symbol', 'Apple Symbols', 'STIX Two Math', 'Cambria Math', 'DejaVu Sans', serif, system-ui, sans-serif",
             textShadow:
-              '0 2px 4px rgba(0, 0, 0, 0.95), 0 4px 14px rgba(0, 0, 0, 0.85), 0 0 24px rgba(243, 202, 82, 0.3)',
+              '0 2px 6px rgba(0, 0, 0, 0.95), 0 4px 16px rgba(0, 0, 0, 0.9), 0 0 28px rgba(243, 202, 82, 0.45)',
           }}
         >
-          <span>𝓛.𝓐</span>
-          <span>𝓒𝓮𝓷𝓽𝓮𝓻</span>
-          <span>𝓙𝓮𝔀𝓮𝓵𝓻𝔂</span>
-          <span>𝓘𝓷𝓬</span>
+          {heroConfig.headline && !heroConfig.headline.includes('𝓛.𝓐') ? (
+            <span>{heroConfig.headline}</span>
+          ) : (
+            <>
+              <span>𝓛.𝓐</span>
+              <span>𝓒𝓮𝓷𝓽𝓮𝓻</span>
+              <span>𝓙𝓮𝔀𝓮𝓵𝓻𝔂</span>
+              <span>𝓘𝓷𝓬</span>
+            </>
+          )}
         </h1>
 
-        {/* 2. Tagline directly underneath */}
+        {/* 2. Tagline directly underneath - Zoomed for clarity */}
         <h2
-          className="font-sans font-light sm:font-normal text-[9px] min-[360px]:text-[10px] sm:text-base md:text-2xl lg:text-[28px] tracking-[0.08em] sm:tracking-widest text-[#F3CA52]"
+          className="font-sans font-normal text-[11px] min-[360px]:text-[12px] min-[400px]:text-[14px] sm:text-base md:text-2xl lg:text-[28px] tracking-[0.06em] sm:tracking-widest text-[#F3CA52]"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
-            textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 8px rgba(0, 0, 0, 0.75)',
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 10px rgba(0, 0, 0, 0.85)',
           }}
         >
-          Jewelry for a Lifetime
+          {heroConfig.tagline || 'Jewelry for a Lifetime'}
         </h2>
       </div>
 
@@ -329,7 +373,7 @@ export const HeroSection: React.FC = () => {
           ========================================================= */}
       <div className="absolute bottom-1 right-2 sm:bottom-3 sm:right-4 md:right-8 z-20 flex flex-col items-end text-right select-none pointer-events-none">
         <p
-          className="font-sans font-normal text-[8px] min-[360px]:text-[9px] sm:text-xs md:text-sm tracking-wide text-[#F3CA52]"
+          className="font-sans font-semibold text-[9px] min-[360px]:text-[10px] sm:text-xs md:text-sm tracking-wide text-[#F3CA52]"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 8px rgba(0, 0, 0, 0.8)',
@@ -338,14 +382,13 @@ export const HeroSection: React.FC = () => {
           Free Parking
         </p>
         <p
-          className="font-sans font-normal text-[7px] min-[360px]:text-[8px] sm:text-[11px] md:text-xs tracking-wide text-[#F3CA52] mt-0.5"
+          className="font-sans font-medium text-[8px] min-[360px]:text-[9px] sm:text-[11px] md:text-xs tracking-wide text-[#F3CA52] mt-0.5"
           style={{
             fontFamily: "'Montserrat', Arial, Helvetica, sans-serif",
             textShadow: '0 2px 4px rgba(0, 0, 0, 0.95), 0 3px 8px rgba(0, 0, 0, 0.8)',
           }}
         >
-          <span>Special Prices: </span>
-          <span>30-50% Off</span>
+          Special Prices: 30-50% Off
         </p>
       </div>
     </section>
